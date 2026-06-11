@@ -52,11 +52,18 @@ esac
 
 # Skip non-first-class paths
 case "$FILE" in
-  */raw/*|*/templates/*|*/_export/*|*/.obsidian/*|*/.git/*|*/.trash/*)
+  */raw/*|*/templates/*|*/_export/*|*/.obsidian/*|*/.git/*|*/.trash/*|*/sablony/*|*/log/*)
     exit 0 ;;
 esac
 
 BASENAME=$(basename "$FILE")
+
+# Skip vault meta files that are manuals/pointers, not AI-first notes
+# (vault_health.py already exempts _CLAUDE.md the same way).
+case "$BASENAME" in
+  _CLAUDE.md|CLAUDE.md|README.md) exit 0 ;;
+esac
+
 WARNINGS=()
 
 # ── Check 1: frontmatter delimiters ──────────────────────────────────────────
@@ -98,9 +105,11 @@ if ! printf '%s\n' "$FRONTMATTER" | grep -qE '^ai-first:[[:space:]]*true[[:space
 fi
 
 # ── Check 4: 'For future Claude' preamble in body ────────────────────────────
+# Czech vaults (cs-adaptace) use '## Pro budouci Claude' / '## Pro budoucí Claude';
+# match the locale-safe prefix to accept both languages.
 BODY=$(awk '/^---$/{c++; if (c<2) next; next} c>=2' "$FILE")
-if ! printf '%s\n' "$BODY" | grep -qE '^##[[:space:]]+For future Claude' ; then
-  WARNINGS+=("$BASENAME missing '## For future Claude' preamble (required by ai-first-rules.md rule #2).")
+if ! printf '%s\n' "$BODY" | grep -qE '^##[[:space:]]+(For future Claude|Pro budouc)' ; then
+  WARNINGS+=("$BASENAME missing '## For future Claude' (or '## Pro budouci Claude') preamble (required by ai-first-rules.md rule #2).")
 fi
 
 # ── Check 5: non-ASCII substitution characters ───────────────────────────────
@@ -108,11 +117,9 @@ if command -v python3 >/dev/null 2>&1; then
   NON_ASCII_HITS=$(python3 - "$FILE" <<'PYEOF'
 import sys
 
+# cs-adaptace: em/en-dash and double quotes removed from the banned set -- they
+# are correct Czech typography (pomlcka, uvozovky „"), not LLM substitution noise.
 BANNED = {
-    '—': ('U+2014 em-dash',            ' - '),
-    '–': ('U+2013 en-dash',             ' - '),
-    '“': ('U+201C left double quote',   '"'),
-    '”': ('U+201D right double quote',  '"'),
     '‘': ('U+2018 left single quote',   "'"),
     '’': ('U+2019 right single quote',  "'"),
     '≥': ('U+2265 >=',                  '>='),

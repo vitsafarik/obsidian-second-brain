@@ -111,7 +111,9 @@ def check_orphans(notes: dict) -> list:
 
     issues = []
     skip_folders = {"Daily", "Dev Logs", "Boards", "Templates", "Life Chapters",
-                    "Faith", "Reviews", "Partner", "Family"}
+                    "Faith", "Reviews", "Partner", "Family",
+                    # Czech vault layout (cs-adaptace)
+                    "denik", "log", "nastenky", "sablony"}
 
     for rel, note in notes.items():
         top_folder = rel.split("/")[0] if "/" in rel else ""

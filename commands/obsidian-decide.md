@@ -2,6 +2,7 @@
 description: Extract decisions from this conversation and log them to the right project notes
 category: thinking
 triggers_en: ["extract decisions", "log decisions", "what did we decide"]
+triggers_cs: ["zapis rozhodnuti", "rozhodli jsme", "uloz rozhodnuti"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-decide $ARGUMENTS`:

@@ -3,6 +3,7 @@ description: Generate a meeting note in the vault from a Google Calendar event -
 category: vault
 exclude: [codex-cli, gemini-cli, opencode]
 triggers_en: ["create a meeting note", "log this meeting", "meeting note for", "prep this meeting", "notes for last meeting"]
+triggers_cs: ["poznamky ze schuzky", "schuzka", "zapis ze schuzky"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-meeting $ARGUMENTS`:

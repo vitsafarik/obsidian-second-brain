@@ -3,6 +3,7 @@ description: Read Google Calendar and write an AI-first snapshot to the vault - 
 category: vault
 exclude: [codex-cli, gemini-cli, opencode]
 triggers_en: ["review my agenda", "check my calendar", "what's on my schedule", "what's on the calendar", "agenda for this week", "agenda for next week"]
+triggers_cs: ["agenda", "co mam v kalendari", "program dne"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-agenda $ARGUMENTS`:

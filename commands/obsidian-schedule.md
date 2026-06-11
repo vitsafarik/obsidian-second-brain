@@ -3,6 +3,7 @@ description: Create or move a Google Calendar event - standalone, from a vault t
 category: vault
 exclude: [codex-cli, gemini-cli, opencode]
 triggers_en: ["schedule a meeting", "book a meeting", "put this on my calendar", "schedule this task", "find a time for"]
+triggers_cs: ["naplanuj", "vytvor udalost", "dej do kalendare"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-schedule $ARGUMENTS`:
