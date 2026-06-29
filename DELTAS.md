@@ -52,7 +52,18 @@ re-apply: triggers_cs 44/44, `uv run pytest` 27/27, `bash scripts/build.sh` all
   unattended with `--dangerously-skip-permissions`. Czech preamble enforced.
 - Armed via `~/.claude/settings.json` (local, not in any repo):
   `OBSIDIAN_BG_AGENT_ENABLED=1` + a `PostCompact` hook entry.
-- Upstream did not touch this file, so it carries over unchanged.
+- **Hardened 2026-06-29** (the hook had never actually fired end-to-end):
+  - Resolves a STABLE `claude` binary (`$HOME/.local/bin/claude`, override via
+    `OBSIDIAN_CLAUDE_BIN`) instead of the bare PATH `claude`, which is often a
+    temporary per-session shim absent in a headless hook - the likely reason it
+    silently no-opped.
+  - Re-invokes itself as a detached `--bg-worker` via `nohup` so the async-hook
+    cleanup cannot kill the multi-minute agent run.
+  - Takes a portable mkdir mutex `/tmp/secondbrain-vault.write.lock` (macOS has no
+    flock) shared with the Hermes vault-sync, so an unattended write never races a
+    commit/push. Pulls `--ff-only` first when the tree is clean. Logs START/END.
+  - Verified end-to-end: hook->worker handoff, detach survival, lock contention,
+    and the real `claude` binary running headless (stub + real smoke test).
 
 ## 4. MCP connector (integrations/obsidian-mcp-server/)
 
@@ -107,11 +118,15 @@ Delivery uses the verified target `telegram:Detoxa`, not bare `telegram`
 (runtime-reload pitfall). NOTE: `hermes-vecerni-audit-pameti` still uses bare
 `telegram` - pending fix.
 
-Known multi-runtime gap (audited 2026-06-29): nothing auto-commits/pushes the
-vault, so Hermes output reaches the other runtimes only via a manual commit, and
-the morning agent's write-block guard self-deadlocked on 2026-06-26 and -28 when
-uncommitted output piled up. Fix tracked separately (auto-commit+push of Hermes
-paths + guard loosening).
+Multi-runtime sync (was a gap, FIXED 2026-06-29): a deterministic `--no-agent`
+Hermes cron `secondbrain-git-sync` (07:30/12:30/18:30/23:30) runs
+`~/.hermes/scripts/secondbrain_vault_sync.sh`, which commits+pushes ONLY the
+Hermes-owned allowlist (`log denik index.md`, never `git add -A`), pulls
+`--rebase --autostash` before push, never force-pushes, and skips its cycle if the
+bg-agent holds the shared mkdir mutex. The morning agent's write-block guard was
+loosened to treat `log/`, today's `denik/`, and `index.md` as expected Hermes
+churn (it previously deadlocked on 2026-06-26 and -28). Evening + synthesis prompts
+gained `git pull --ff-only`; evening delivery fixed to `telegram:Detoxa`.
 
 ## Not adopted (deliberately)
 
