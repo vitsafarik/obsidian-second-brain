@@ -183,6 +183,10 @@ def get_skill(name: str) -> Dict[str, Any]:
     name = (name or "").strip().lstrip("/")
     if not name:
         return {"error": "name is required"}
+    # Path-traversal guard: skill names are flat slugs (a-z, 0-9, - and _).
+    # Reject anything with separators or dots so "../.." cannot escape cmds/.
+    if not all(c.isalnum() or c in "-_" for c in name):
+        return {"error": f"unknown skill: {name}"}
     if name in _EXCLUDED_SKILLS:
         return {"error": f"skill '{name}' is not exposed over MCP"}
     cmds = _commands_dir()
