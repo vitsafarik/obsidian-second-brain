@@ -44,6 +44,25 @@ if [ "$COMMANDS_COPIED" -eq 1 ]; then
   echo "  (symlinks require Developer Mode - commands were copied; run update.sh to refresh)"
 fi
 
+# Prune stale command links left over from an earlier version. Only touch
+# symlinks that point INTO this skill's commands/ dir and whose target is gone
+# (command removed upstream); other skills'/plugins' commands stay untouched.
+# Without this, re-running install after an upgrade leaves dangling symlinks.
+pruned=0
+for dest in "$COMMANDS_DIR"/*.md; do
+  [ -L "$dest" ] || continue
+  case "$(readlink "$dest")" in
+    "$SKILL_DIR/commands"/*)
+      if [ ! -e "$dest" ]; then
+        rm "$dest"
+        echo "  removed $(basename "$dest") (no longer in skill)"
+        pruned=$((pruned + 1))
+      fi
+      ;;
+  esac
+done
+[ "$pruned" -gt 0 ] && echo "  pruned $pruned stale command(s)"
+
 # Link skill into ~/.claude/skills/
 SKILL_LINK="$SKILLS_DIR/obsidian-second-brain"
 if [ -e "$SKILL_LINK" ]; then

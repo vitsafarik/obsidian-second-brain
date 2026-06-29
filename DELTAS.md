@@ -128,6 +128,26 @@ loosened to treat `log/`, today's `denik/`, and `index.md` as expected Hermes
 churn (it previously deadlocked on 2026-06-26 and -28). Evening + synthesis prompts
 gained `git pull --ff-only`; evening delivery fixed to `telegram:Detoxa`.
 
+## 7. Installer command reconcile (install.sh + update.sh)
+
+Fixed 2026-06-29. Both installers symlink `commands/*.md` into
+`~/.claude/commands/` but only ever ADDED links (skip-if-exists) and never
+removed them. After the 0.11 re-apply deleted 4 commands (`obsidian-adr`,
+`-agenda`, `-meeting`, `-schedule`, folded into `obsidian-decide` /
+`obsidian-calendar`) and added 4 (`obsidian-board-hygiene`, `-catchup`,
+`-distill`, `-retrieval-eval`), a synced machine was left with 4 dangling
+symlinks (targets gone) + 4 missing new commands - `git pull` alone cannot fix
+either, since it only refreshes contents behind existing links.
+
+- `update.sh` rewritten to fully reconcile: prune stale links, link new
+  commands, refresh copied ones (Windows).
+- `install.sh` gained the same prune step after its link loop, so re-running it
+  post-upgrade self-heals too.
+
+Prune is scoped by `readlink` target prefix (`$SKILL_DIR/commands/*`): only this
+skill's own broken links are removed, never other skills'/plugins' commands.
+Upstream candidate (not Czech-specific) - offer it back if a clean PR is wanted.
+
 ## Not adopted (deliberately)
 
 - `hermes-memory-provider` branch: v0 scaffold, untested live; Hermes already
