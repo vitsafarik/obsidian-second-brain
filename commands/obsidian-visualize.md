@@ -2,6 +2,7 @@
 description: Generate a visual canvas map of your vault - see the shape of your second brain and how knowledge connects
 category: meta
 triggers_en: ["visualize vault", "vault map", "canvas of vault", "show me the vault shape"]
+triggers_cs: ["vizualizuj vault", "ukaz mapu znalosti", "mapa vaultu", "ukaz tvar brainu"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-visualize $ARGUMENTS`:

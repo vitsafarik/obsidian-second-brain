@@ -2,6 +2,7 @@
 description: Surface 3-5 next-direction candidates by reading ungraduated ideas, open project questions, and orphan research notes - what is worth working on next
 category: thinking
 triggers_en: ["what should I work on next", "idea discovery", "surface next directions", "what's worth pursuing"]
+triggers_cs: ["co delat dal", "navrhy smeru", "na cem pracovat", "co stoji za to delat"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/idea-discovery`:

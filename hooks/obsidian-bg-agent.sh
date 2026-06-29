@@ -61,6 +61,12 @@ printf '%s\n\n' "$SUMMARY" >> "$PROMPT_FILE"
 cat >> "$PROMPT_FILE" << 'INSTRUCTIONS'
 INSTRUCTIONS:
 1. Read _CLAUDE.md at the vault root first - follow its rules exactly. Where silent, use defaults.
+   This vault is CZECH. Use ONLY the Czech folder names below. NEVER create English
+   folders (no People/, Projects/, Daily/, Ideas/, Boards/, Dev Logs/). Folder map:
+   People -> lide/, Projects -> projekty/, Daily -> denik/ (YYYY-MM-DD.md),
+   Ideas -> napady/, Boards -> nastenky/ (Obsidian Kanban), Dev Logs -> log/prace/,
+   operational log -> log/YYYY-MM-DD.md (append-only). Write note bodies in Czech,
+   including the "## Pro budouci Claude" preamble (not "## For future Claude").
 2. Identify all vault-worthy items in the summary:
    - Decisions made or confirmed
    - Tasks created, assigned, or completed
@@ -71,14 +77,14 @@ INSTRUCTIONS:
    - Shoutouts or mentions worth logging
 3. Before creating any note, search for an existing one. Never duplicate.
 4. Update or create notes as appropriate:
-   - People: update People/Name.md interaction log; create a stub if missing
-   - Projects: update status, Recent Activity, Key Decisions sections
-   - Dev work: create or update Dev Logs/YYYY-MM-DD - Project.md; link from project note
-   - Tasks: add to the right Boards/ kanban column (use TODAY date from above)
-   - Ideas: save to Ideas/ folder
-   - Decisions: append to the relevant project note's Key Decisions section
-5. Update today's daily note (Daily/[TODAY].md using the TODAY value above):
-   - Create it from the Daily Note template if it does not exist
+   - People: update lide/jmeno.md interaction log; create a stub if missing
+   - Projects: update status, recent activity, key decisions sections in projekty/
+   - Dev work: create or update log/prace/YYYY-MM-DD-projekt.md; link from project note
+   - Tasks: add to the right column of the existing board nastenky/ukoly.md (use TODAY date)
+   - Ideas: save to napady/
+   - Decisions: append to the relevant projekty/ note's decisions section
+5. Update today's daily note (denik/[TODAY].md using the TODAY value above):
+   - Create it from the daily template in sablony/ if it does not exist
    - Link everything you touched - people, projects, dev logs, decisions
 6. Propagate everywhere:
    - Nothing is saved in isolation

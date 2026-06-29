@@ -3,6 +3,7 @@ description: Reconcile the vault against your calendar - flag deadlines and comm
 category: vault
 exclude: [codex-cli, gemini-cli, opencode]
 triggers_en: ["calendar check", "reconcile calendar", "what's not on my calendar", "calendar reconciliation", "am I missing anything on my calendar"]
+triggers_cs: ["srovnej s kalendarem", "co nemam v kalendari", "kontrola kalendare", "co mi chybi v kalendari"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-calendar $ARGUMENTS`:
