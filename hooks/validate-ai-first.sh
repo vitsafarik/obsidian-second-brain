@@ -112,6 +112,19 @@ if ! printf '%s\n' "$BODY" | grep -qE '^##[[:space:]]+(For future Claude|Pro bud
   WARNINGS+=("$BASENAME missing '## For future Claude' (or '## Pro budouci Claude') preamble (required by ai-first-rules.md rule #2).")
 fi
 
+# ── Check 6: bi-temporal timeline on stateful notes ──────────────────────────
+# Project/person/wiki notes hold facts that change over time; the vault rule
+# (_CLAUDE.md rule #4) wants a timeline: array so state changes leave an audit
+# trail instead of being silently overwritten. Warn (non-blocking) when one of
+# these note types lacks it.
+NOTE_TYPE=$(printf '%s\n' "$FRONTMATTER" | sed -nE 's/^type:[[:space:]]*"?([a-zA-Z]+)"?.*/\1/p' | head -1)
+case "$NOTE_TYPE" in
+  project|person|wiki)
+    if ! printf '%s\n' "$FRONTMATTER" | grep -qE '^timeline:'; then
+      WARNINGS+=("$BASENAME (type: $NOTE_TYPE) missing 'timeline:' - bi-temporal facts keep an audit trail of state changes (see _CLAUDE.md rule #4).")
+    fi ;;
+esac
+
 # ── Check 5: non-ASCII substitution characters ───────────────────────────────
 if command -v python3 >/dev/null 2>&1; then
   NON_ASCII_HITS=$(python3 - "$FILE" <<'PYEOF'
