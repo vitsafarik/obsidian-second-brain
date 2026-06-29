@@ -2,6 +2,7 @@
 description: Scan your vault and generate a _CLAUDE.md operating manual, index.md catalog, and log.md pointer
 category: meta
 triggers_en: ["init vault", "bootstrap vault", "setup vault", "scan vault"]
+triggers_cs: ["inicializuj vault", "zaloz vault", "nastav vault", "naskenuj vault"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-init`:

@@ -2,6 +2,7 @@
 description: Live project status from git + local docs - infers all context from vault notes, no config required
 category: vault
 triggers_en: ["projects overview", "project status", "what am I working on", "show projects"]
+triggers_cs: ["prehled projektu", "stav vsech projektu", "co se deje v projektech"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-projects $ARGUMENTS`:

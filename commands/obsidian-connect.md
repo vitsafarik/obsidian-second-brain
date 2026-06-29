@@ -2,6 +2,7 @@
 description: Bridge two unrelated domains using your vault's link graph - forces creative friction to spark new ideas
 category: thinking
 triggers_en: ["connect domains", "cross-pollinate", "bridge ideas", "find an unexpected link"]
+triggers_cs: ["propoj domeny", "najdi necekane spojeni", "premosti napady", "kreativni spojeni"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-connect $ARGUMENTS`:

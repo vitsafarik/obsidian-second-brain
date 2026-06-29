@@ -300,7 +300,7 @@ def _load_vault_ops():
 def test_mcp_vault_ops_save_read_search_roundtrip(tmp_path, monkeypatch):
     """The MCP connector's core data tools must round-trip against a real vault:
     save_note writes an AI-first note (frontmatter + preamble + source: mcp marker)
-    to Inbox/, read_note returns it, search finds it. Pure stdlib path - exercises
+    to vstupy/, read_note returns it, search finds it. Pure stdlib path - exercises
     the logic the MCP server wraps without needing the mcp package."""
     vault_ops = _load_vault_ops()
     vault = tmp_path / "vault"
@@ -314,12 +314,12 @@ def test_mcp_vault_ops_save_read_search_roundtrip(tmp_path, monkeypatch):
         tags=["mcp", "hermes"],
     )
     rel = saved["saved"]
-    assert rel.startswith("Inbox/")
+    assert rel.startswith("vstupy/")  # cs-adaptace: Czech inbox folder
 
     note = (vault / rel).read_text(encoding="utf-8")
     assert "ai-first: true" in note
     assert "source: mcp" in note
-    assert "## For future Claude" in note
+    assert "## Pro budoucí Claude" in note  # cs-adaptace: Czech preamble
 
     read_back = vault_ops.read_note(rel)
     assert "Hermes agent" in read_back["content"]
@@ -520,7 +520,7 @@ def test_mcp_vault_ops_validate_and_backlinks_and_health(tmp_path, monkeypatch):
     v = vault_ops.validate_note("Project Alpha.md")
     assert v["ok"] is False
     joined = " ".join(v["issues"])
-    assert "For future Claude" in joined
+    assert "Pro budoucí Claude" in joined  # cs-adaptace: Czech preamble in the issue message
     assert "date" in joined  # missing required key
 
     bl = vault_ops.backlinks("Project Alpha")

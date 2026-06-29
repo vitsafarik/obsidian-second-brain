@@ -2,6 +2,7 @@
 description: Create or update a project note - adds to board and daily note automatically
 category: vault
 triggers_en: ["new project", "create project note", "project setup", "start a project"]
+triggers_cs: ["stav projektu", "aktualizuj projekt", "projektova poznamka"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-project $ARGUMENTS`:

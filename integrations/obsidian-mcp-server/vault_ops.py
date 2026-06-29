@@ -22,12 +22,14 @@ from typing import Any, Dict, List, Optional
 _VAULT_ENV = "OBSIDIAN_VAULT_PATH"
 
 # Notes added via the connector land here, separate from hand-authored notes.
-_NOTES_DIR = "Inbox"
+# Czech vault (cs-adaptace): vstupy/, never an English Inbox/.
+_NOTES_DIR = "vstupy"
 
 # Never scanned during search (config, vcs, immutable sources, exports). `.claude`
 # is a vault-local agent config dir (CLAUDE.md, commands, settings) - its markdown
 # is not vault content and would inflate every result (see issue #80).
-_SKIP_DIRS = {".obsidian", ".git", ".trash", ".claude", "_export", "templates"}
+_SKIP_DIRS = {".obsidian", ".git", ".trash", ".claude", "_export", "templates",
+              "sablony"}  # cs-adaptace: sablony/ = Czech templates
 
 # Operational logs and immutable raw sources are rarely the *answer* to a query:
 # they are long and term-dense, so without a penalty they dominate term-frequency
@@ -249,7 +251,7 @@ def save_note(
     note_type: str = "note",
     tags: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
-    """Write an AI-first note to the vault's Inbox folder."""
+    """Write an AI-first note to the vault's inbox folder (vstupy/, cs-adaptace)."""
     vault = resolve_vault()
     title = (title or "").strip()
     content = (content or "").strip()
@@ -272,7 +274,7 @@ def save_note(
         f"ai-first: true\n"
         f"source: mcp\n"
         f"---\n\n"
-        f"## For future Claude\n"
+        f"## Pro budoucí Claude\n"
         f"{preamble}\n\n"
         f"{content}\n"
     )
@@ -363,8 +365,9 @@ def validate_note(rel: str) -> Dict[str, Any]:
     for key in ("type", "date", "tags", "ai-first"):
         if not re.search(rf"(?mi)^{key}:", fmtext):
             issues.append(f"missing frontmatter key: {key}")
-    if "## For future Claude" not in text:
-        issues.append("missing '## For future Claude' preamble")
+    # cs-adaptace: Czech vault notes use '## Pro budoucí Claude' (also accept ASCII 'budouci').
+    if "## For future Claude" not in text and "## Pro budou" not in text:
+        issues.append("missing '## Pro budoucí Claude' preamble")
     index = _stem_index(vault)
     seen = set()
     for link in _wikilinks(text):
@@ -485,6 +488,10 @@ def get_skill(name: str) -> Dict[str, Any]:
     name = (name or "").strip().lstrip("/")
     if not name:
         return {"error": "name is required"}
+    # Path-traversal guard (cs-adaptace security fix): skill names are flat slugs
+    # (alphanumerics, - and _). Reject separators/dots so '../x' cannot escape commands/.
+    if not all(c.isalnum() or c in "-_" for c in name):
+        return {"error": f"unknown skill: {name}"}
     if name in _EXCLUDED_SKILLS:
         return {"error": f"skill '{name}' is not exposed over MCP"}
     cmds = _commands_dir()

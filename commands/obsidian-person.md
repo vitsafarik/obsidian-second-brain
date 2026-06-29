@@ -2,6 +2,7 @@
 description: Create or update a person note from conversation context
 category: vault
 triggers_en: ["save this person", "add person", "new contact note", "create person note"]
+triggers_cs: ["poznamka o cloveku", "aktualizuj cloveka", "kdo je"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-person $ARGUMENTS`:

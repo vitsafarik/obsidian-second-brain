@@ -2,6 +2,7 @@
 description: Deep cross-reference of everything the vault knows about one topic - agreements, contradictions, stale claims, and coverage gaps. Pure vault, no network
 category: thinking
 triggers_en: ["synthesize what I know about", "deep synthesis on", "cross-reference my notes on", "what does my vault say about"]
+triggers_cs: ["co vim o tomhle tematu", "hloubkova synteza", "co o tom rika muj vault", "zkrizit poznamky o"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/vault-deep-synthesis [topic]`:

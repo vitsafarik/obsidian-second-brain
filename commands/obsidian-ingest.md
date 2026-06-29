@@ -2,6 +2,7 @@
 description: Ingest a source into the vault - the vault rewrites itself around new knowledge. Every ingest updates entities, rewrites stale claims, synthesizes new concepts, and resolves contradictions.
 category: research
 triggers_en: ["ingest this source", "add this article", "import this", "absorb this"]
+triggers_cs: ["zpracuj zdroj", "nacti clanek", "uloz clanek do brainu"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-ingest $ARGUMENTS`:
