@@ -3,6 +3,7 @@ description: Export a clean structured snapshot of the vault that any agent or t
 category: meta
 triggers_en: ["export vault", "snapshot vault", "dump vault", "vault export"]
 triggers_es: ["exporta el vault", "haz una foto del vault", "vuelca el vault", "exportación del vault"]
+triggers_cs: ["exportuj vault", "snapshot vaultu", "vypis vault", "export brainu"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-export $ARGUMENTS`:

@@ -3,6 +3,7 @@ description: Load your identity, values, priorities, and current state in one sh
 category: vault
 triggers_en: ["load context", "what is going on", "where am I", "load my world"]
 triggers_es: ["carga el contexto", "qué está pasando", "dónde estoy", "carga mi mundo"]
+triggers_cs: ["nacti muj kontext", "kdo jsem a co resim", "nacti muj svet", "kde to jsem"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-world`:

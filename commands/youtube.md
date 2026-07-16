@@ -3,6 +3,7 @@ description: Extract transcript, metadata, and top comments from a YouTube video
 category: research
 triggers_en: ["summarize youtube", "youtube transcript", "extract video", "youtube to vault", "watch this video", "what's on screen in this video"]
 triggers_es: ["resume este vídeo de youtube", "transcripción de youtube", "extrae este vídeo", "youtube al vault", "mira este vídeo", "qué se ve en este vídeo"]
+triggers_cs: ["shrn to video", "youtube prepis", "co je v tom videu", "shrnuti youtube videa"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/youtube [url] [--visual]`:

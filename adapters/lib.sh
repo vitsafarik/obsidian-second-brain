@@ -197,6 +197,7 @@ _detect_languages() {
 _lang_label() {
   case "$1" in
     en) echo "English" ;;
+    cs) echo "Čeština" ;;
     es) echo "Español" ;;
     it) echo "Italiano" ;;
     fr) echo "Français" ;;

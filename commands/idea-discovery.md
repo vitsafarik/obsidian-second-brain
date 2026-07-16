@@ -3,6 +3,7 @@ description: Surface 3-5 next-direction candidates by reading ungraduated ideas,
 category: thinking
 triggers_en: ["what should I work on next", "idea discovery", "surface next directions", "what's worth pursuing"]
 triggers_es: ["¿en qué debería trabajar ahora?", "descubre ideas para seguir", "qué rumbos tomar", "qué vale la pena perseguir"]
+triggers_cs: ["co delat dal", "navrhy smeru", "na cem pracovat", "co stoji za to delat"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/idea-discovery`:

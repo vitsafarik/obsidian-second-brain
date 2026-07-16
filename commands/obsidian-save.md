@@ -3,6 +3,7 @@ description: Save everything worth keeping from this conversation to the vault
 category: vault
 triggers_en: ["save this", "save the conversation", "save to vault", "obsidian save"]
 triggers_es: ["guarda esto", "guarda la conversación", "guarda al vault"]
+triggers_cs: ["uloz to", "uloz do brainu", "uloz konverzaci", "zapis to do vaultu"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-save`:

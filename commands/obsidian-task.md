@@ -3,6 +3,7 @@ description: Add a task to the right kanban board with inferred priority and due
 category: vault
 triggers_en: ["add task", "new todo", "track this", "remind me"]
 triggers_es: ["añade una tarea", "nuevo pendiente", "haz seguimiento de esto", "recuérdamelo"]
+triggers_cs: ["pridej ukol", "novy ukol", "ukol do brainu"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-task $ARGUMENTS`:

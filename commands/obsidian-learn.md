@@ -3,6 +3,7 @@ description: Review vault learnings, prune stale ones, surface active patterns -
 category: thinking
 triggers_en: ["review learnings", "what have I learned", "show lessons", "prune learnings"]
 triggers_es: ["revisa los aprendizajes", "qué he aprendido", "muéstrame las lecciones", "poda los aprendizajes"]
+triggers_cs: ["co jsem se naucil", "projdi ponauceni", "ukaz lekce", "vycisti ponauceni"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-learn $ARGUMENTS`:

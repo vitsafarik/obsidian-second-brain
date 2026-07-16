@@ -52,7 +52,7 @@ def obsidian_save_note(
     type: str = "note",
     tags: list[str] | None = None,
 ) -> str:
-    """Save a new note to the vault Inbox (AI-first format).
+    """Save a new note to the vault inbox folder (vstupy/, AI-first format).
 
     Use for facts, ideas, or anything worth keeping in the knowledge vault.
     """

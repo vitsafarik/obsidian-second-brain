@@ -3,6 +3,7 @@ description: Summarize a time period from the vault - today, week, or month
 category: vault
 triggers_en: ["recap today", "recap the week", "summarize the week", "month recap"]
 triggers_es: ["resumen de hoy", "resumen de la semana", "resume la semana", "resumen del mes"]
+triggers_cs: ["shrnuti dne", "shrnuti tydne", "rekapitulace"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-recap $ARGUMENTS`:

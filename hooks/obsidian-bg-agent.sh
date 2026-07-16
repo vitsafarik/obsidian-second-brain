@@ -20,8 +20,57 @@
 #   4. Make executable: chmod +x hooks/obsidian-bg-agent.sh
 # To disable again: clear OBSIDIAN_BG_AGENT_ENABLED (the gate below makes that enough).
 #
+# Optional env:
+#   OBSIDIAN_CLAUDE_BIN  absolute path to a stable `claude` binary (auto-detected
+#                        otherwise). The interactive `claude` on PATH is often a
+#                        temporary per-session shim that does not exist headless.
+#   OBSIDIAN_BG_LOCK     override the mutex path (used by tests; the default is
+#                        shared with the vault-sync publisher - do not change it live).
+#
 # Logs: /tmp/obsidian-bg-agent.log
 
+LOG=/tmp/obsidian-bg-agent.log
+# A machine-local mkdir mutex (portable: macOS has no flock). Shared with the
+# living-loop vault-sync so an unattended write never races a commit/push. Lives
+# outside the repo so it never shows up in `git status`.
+LOCK="${OBSIDIAN_BG_LOCK:-/tmp/secondbrain-vault.write.lock}"
+
+# ---------------------------------------------------------------------------
+# Detached worker: re-invoked via `nohup "$0" --bg-worker` so the async-hook
+# cleanup cannot kill the multi-minute agent run. Reads BG_* from the env.
+# ---------------------------------------------------------------------------
+if [[ "${1:-}" == "--bg-worker" ]]; then
+  tries=0
+  while ! mkdir "$LOCK" 2>/dev/null; do
+    # stale-lock breaker: reclaim if the recorded holder is gone
+    if [[ -f "$LOCK/pid" ]] && ! kill -0 "$(cat "$LOCK/pid" 2>/dev/null)" 2>/dev/null; then
+      rm -rf "$LOCK" 2>/dev/null; continue
+    fi
+    tries=$((tries + 1))
+    if [[ "$tries" -gt 600 ]]; then
+      printf '%s bg-agent could not acquire lock in 600s, skipping\n' "$(date '+%F %T')" >> "$LOG"
+      exit 0
+    fi
+    sleep 1
+  done
+  echo $$ > "$LOCK/pid"
+  trap 'rm -rf "$LOCK"' EXIT
+
+  cd "$BG_VAULT" || exit 0
+  # current with the remote only when the tree is clean (during an active session
+  # it is usually dirty, so this is a no-op and never clobbers in-progress work)
+  if git diff --quiet 2>/dev/null && git diff --cached --quiet 2>/dev/null; then
+    git pull --ff-only --quiet 2>/dev/null || true
+  fi
+  printf '%s START bg-agent write (claude=%s)\n' "$(date '+%F %T')" "$BG_CLAUDE" >> "$LOG"
+  "$BG_CLAUDE" --dangerously-skip-permissions -p "$BG_PROMPT" >> "$LOG" 2>&1
+  printf '%s END bg-agent write rc=%s\n' "$(date '+%F %T')" "$?" >> "$LOG"
+  exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Hook entry point
+# ---------------------------------------------------------------------------
 VAULT="${OBSIDIAN_VAULT_PATH:-}"
 [[ -z "$VAULT" ]] && exit 0
 
@@ -61,6 +110,12 @@ printf '%s\n\n' "$SUMMARY" >> "$PROMPT_FILE"
 cat >> "$PROMPT_FILE" << 'INSTRUCTIONS'
 INSTRUCTIONS:
 1. Read _CLAUDE.md at the vault root first - follow its rules exactly. Where silent, use defaults.
+   This vault is CZECH. Use ONLY the Czech folder names below. NEVER create English
+   folders (no People/, Projects/, Daily/, Ideas/, Boards/, Dev Logs/). Folder map:
+   People -> lide/, Projects -> projekty/, Daily -> denik/ (YYYY-MM-DD.md),
+   Ideas -> napady/, Boards -> nastenky/ (Obsidian Kanban), Dev Logs -> log/prace/,
+   operational log -> log/YYYY-MM-DD.md (append-only). Write note bodies in Czech,
+   including the "## Pro budouci Claude" preamble (not "## For future Claude").
 2. Identify all vault-worthy items in the summary:
    - Decisions made or confirmed
    - Tasks created, assigned, or completed
@@ -70,17 +125,15 @@ INSTRUCTIONS:
    - Ideas, learnings, or insights
    - Shoutouts or mentions worth logging
 3. Before creating any note, search for an existing one. Never duplicate.
-4. Update or create notes as appropriate. Resolve every folder from _CLAUDE.md's
-   Folder Map (wiki-style wiki/entities|projects|logs|daily, Obsidian-style
-   People/|Projects/|Dev Logs/|Daily/ - use whichever layout the vault has):
-   - People: update the person's note interaction log; create a stub if missing
-   - Projects: update status, Recent Activity, Key Decisions sections
-   - Dev work: create or update the dev log YYYY-MM-DD - Project.md; link from project note
-   - Tasks: add to the right kanban board column (use TODAY date from above)
-   - Ideas: save to the ideas/concepts folder
-   - Decisions: append to the relevant project note's Key Decisions section
-5. Update today's daily note ([TODAY].md in the resolved daily folder):
-   - Create it from the Daily Note template if it does not exist
+4. Update or create notes as appropriate:
+   - People: update lide/jmeno.md interaction log; create a stub if missing
+   - Projects: update status, recent activity, key decisions sections in projekty/
+   - Dev work: create or update log/prace/YYYY-MM-DD-projekt.md; link from project note
+   - Tasks: add to the right column of the existing board nastenky/ukoly.md (use TODAY date)
+   - Ideas: save to napady/
+   - Decisions: append to the relevant projekty/ note's decisions section
+5. Update today's daily note (denik/[TODAY].md using the TODAY value above):
+   - Create it from the daily template in sablony/ if it does not exist
    - Link everything you touched - people, projects, dev logs, decisions
 6. Propagate everywhere:
    - Nothing is saved in isolation
@@ -97,10 +150,22 @@ INSTRUCTIONS
 PROMPT=$(cat "$PROMPT_FILE")
 rm -f "$PROMPT_FILE"
 
-# Run headless agent in vault directory - async, logs to /tmp for debugging
-(
-  cd "$VAULT" && \
-  claude --dangerously-skip-permissions -p "$PROMPT" >> /tmp/obsidian-bg-agent.log 2>&1
-) &
+# Resolve a STABLE claude binary (the interactive PATH `claude` is often a
+# temporary session shim that is absent in a headless hook).
+CLAUDE_BIN="${OBSIDIAN_CLAUDE_BIN:-}"
+if [[ -z "$CLAUDE_BIN" || ! -x "$CLAUDE_BIN" ]]; then
+  for c in "$HOME/.local/bin/claude" "$HOME/.claude/local/claude" /opt/homebrew/bin/claude /usr/local/bin/claude; do
+    [[ -x "$c" ]] && { CLAUDE_BIN="$c"; break; }
+  done
+fi
+if [[ -z "$CLAUDE_BIN" || ! -x "$CLAUDE_BIN" ]]; then
+  printf '%s no stable claude binary found (set OBSIDIAN_CLAUDE_BIN)\n' "$(date '+%F %T')" >> "$LOG"
+  exit 0
+fi
+
+# Hand off to the detached worker (survives async-hook cleanup; takes the mutex).
+export BG_PROMPT="$PROMPT" BG_VAULT="$VAULT" BG_CLAUDE="$CLAUDE_BIN"
+nohup "$0" --bg-worker >/dev/null 2>&1 &
+disown 2>/dev/null || true
 
 exit 0

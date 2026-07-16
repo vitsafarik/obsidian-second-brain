@@ -54,12 +54,23 @@ case "$FILE" in
 esac
 
 # Skip non-first-class paths
+# cs-adaptace: += sablony/ (Czech templates), log/ (Czech append-only logs;
+# upstream's */Logs/* is case-sensitive and misses it), nastenky/ (Czech kanban
+# boards - same phantom-column exception as boards/).
 case "$FILE" in
-  */raw/*|*/templates/*|*/_export/*|*/.obsidian/*|*/.git/*|*/.trash/*|*/boards/*|*/Boards/*|*/Logs/*|*/_CLAUDE.md|*/Home.md|*/index.md|*/log.md|*/catchup.md)
+  */raw/*|*/templates/*|*/_export/*|*/.obsidian/*|*/.git/*|*/.trash/*|*/boards/*|*/Boards/*|*/Logs/*|*/sablony/*|*/log/*|*/nastenky/*|*/_CLAUDE.md|*/Home.md|*/index.md|*/log.md|*/catchup.md)
     exit 0 ;;
 esac
 
 BASENAME=$(basename "$FILE")
+
+# Skip vault meta files that are manuals/pointers, not AI-first notes
+# (vault_health.py exempts these the same way; upstream skips _CLAUDE.md by
+# path above, so only CLAUDE.md/README.md remain cs-adaptace additions).
+case "$BASENAME" in
+  CLAUDE.md|README.md) exit 0 ;;
+esac
+
 WARNINGS=()
 
 # ── Check 1: frontmatter delimiters ──────────────────────────────────────────
@@ -101,21 +112,35 @@ if ! printf '%s\n' "$FRONTMATTER" | grep -qE '^ai-first:[[:space:]]*true[[:space
 fi
 
 # ── Check 4: 'For future Claude' preamble in body ────────────────────────────
+# Czech vaults (cs-adaptace) use '## Pro budouci Claude' / '## Pro budoucí Claude';
+# match the locale-safe prefix to accept both languages.
 BODY=$(awk '/^---$/{c++; if (c<2) next; next} c>=2' "$FILE")
-if ! printf '%s\n' "$BODY" | grep -qE '^##[[:space:]]+For future Claude' ; then
-  WARNINGS+=("$BASENAME missing '## For future Claude' preamble (required by ai-first-rules.md rule #2).")
+if ! printf '%s\n' "$BODY" | grep -qE '^##[[:space:]]+(For future Claude|Pro budouc)' ; then
+  WARNINGS+=("$BASENAME missing '## For future Claude' (or '## Pro budouci Claude') preamble (required by ai-first-rules.md rule #2).")
 fi
+
+# ── Check 6: bi-temporal timeline on stateful notes ──────────────────────────
+# Project/person/wiki notes hold facts that change over time; the vault rule
+# (_CLAUDE.md rule #4) wants a timeline: array so state changes leave an audit
+# trail instead of being silently overwritten. Warn (non-blocking) when one of
+# these note types lacks it.
+NOTE_TYPE=$(printf '%s\n' "$FRONTMATTER" | sed -nE 's/^type:[[:space:]]*"?([a-zA-Z]+)"?.*/\1/p' | head -1)
+case "$NOTE_TYPE" in
+  project|person|wiki)
+    if ! printf '%s\n' "$FRONTMATTER" | grep -qE '^timeline:'; then
+      WARNINGS+=("$BASENAME (type: $NOTE_TYPE) missing 'timeline:' - bi-temporal facts keep an audit trail of state changes (see _CLAUDE.md rule #4).")
+    fi ;;
+esac
 
 # ── Check 5: non-ASCII substitution characters ───────────────────────────────
 if command -v python3 >/dev/null 2>&1; then
   NON_ASCII_HITS=$(python3 - "$FILE" <<'PYEOF'
 import sys
 
+# cs-adaptace: em/en-dash and curly double quotes removed from the banned set --
+# they are correct Czech typography (pomlcka, uvozovky). Single curly quotes,
+# Unicode math, ellipsis and nbsp stay banned.
 BANNED = {
-    '—': ('U+2014 em-dash',            ' - '),
-    '–': ('U+2013 en-dash',             ' - '),
-    '“': ('U+201C left double quote',   '"'),
-    '”': ('U+201D right double quote',  '"'),
     '‘': ('U+2018 left single quote',   "'"),
     '’': ('U+2019 right single quote',  "'"),
     '≥': ('U+2265 >=',                  '>='),

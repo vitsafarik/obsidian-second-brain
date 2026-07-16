@@ -3,6 +3,7 @@ description: Vault-first deep research - scans the vault, fills gaps (Perplexity
 category: research
 triggers_en: ["deep research", "thorough research", "vault-first research", "research gaps"]
 triggers_es: ["investigación profunda", "investiga a fondo", "investigación basada en mi vault", "rellena los huecos de información"]
+triggers_cs: ["hloubkovy research", "dukladny research", "research z vaultu", "doplnit mezery"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/research-deep [topic]`:

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fork (cs-adaptace)
+
+- **Re-applied the Czech adaptation onto upstream 0.12 "The Stress Test"** (2026-07-16;
+  fallback tag `cs-adaptace-pre-0.12`). All 44 commands keep `triggers_cs` next to the
+  new `triggers_es`; the Czech lines were re-inserted into upstream's swept command
+  bodies so the new portability and folder-map lints pass. The `get_skill`
+  path-traversal guard is no longer a fork delta (upstream merged it as #84). Full
+  delta inventory lives in `DELTAS.md`; verified with 164/164 tests and a 6-platform
+  build.
+
 ### Security
 
 - **Link triage can no longer write outside the vault (stress-test round 2).** `triage_links.py` built a new stub's path straight from wikilink text, and the wikilink regex allows `/`, `.`, and `..`. A `CREATE` verdict on a crafted or hallucinated `[[../../escaped/x]]` wrote a file above the vault root, `[[/abs/path/x]]` wrote at an absolute path, and `[[/unwritable/x]]` raised an unhandled `OSError` that aborted the whole batch. Since the verdict comes from an LLM reading attacker-influenceable vault text, this was a real containment hole. The stub path is now resolved and required to stay inside `wiki/stubs/`; anything that escapes is skipped and reported, never written and never fatal. Covered by `tests/test_note_safety.py` (parent-traversal refused, absolute-path refused, legitimate stubs still created).

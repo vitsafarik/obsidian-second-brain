@@ -3,6 +3,7 @@ description: Record decisions - lightweight by default (logged to project notes)
 category: thinking
 triggers_en: ["extract decisions", "log decisions", "what did we decide", "log this decision", "ADR", "record decision", "decision record"]
 triggers_es: ["saca las decisiones de esta conversación", "registra las decisiones", "¿qué decidimos?", "anota esta decisión", "ADR", "acta de decisión formal"]
+triggers_cs: ["zapis rozhodnuti", "rozhodli jsme", "uloz rozhodnuti", "nove adr", "architektonicke rozhodnuti"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-decide $ARGUMENTS`:

@@ -3,6 +3,7 @@ description: Surface unnamed patterns from your recent notes - recurring themes,
 category: thinking
 triggers_en: ["find patterns", "what is emerging", "surface themes", "unnamed patterns"]
 triggers_es: ["busca patrones", "qué está emergiendo", "saca a la luz los temas recurrentes", "patrones que no he nombrado"]
+triggers_cs: ["najdi vzorce", "co se rysuje", "skryta temata", "co z toho vyplyva"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-emerge $ARGUMENTS`:

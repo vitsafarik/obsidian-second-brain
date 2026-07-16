@@ -3,6 +3,7 @@ description: Bulk-triage a kanban board - surface stale items and archive, resch
 category: vault
 triggers_en: ["clean up my board", "triage my board", "board hygiene", "archive stale tasks", "my board is a mess"]
 triggers_es: ["limpia mi tablero", "haz triaje de mi tablero", "ordena el tablero", "archiva las tareas viejas", "mi tablero es un desastre"]
+triggers_cs: ["uklid nastenku", "protrid nastenku", "hygiena nastenky", "archivuj stare ukoly", "nastenka je bordel"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-board-hygiene [board]`:

@@ -3,6 +3,7 @@ description: Create or update today's daily note - pulls calendar events, overdu
 category: vault
 triggers_en: ["todays note", "create todays daily", "open daily", "today daily note"]
 triggers_es: ["nota de hoy", "crea la diaria de hoy", "abre mi diaria", "la nota diaria de hoy"]
+triggers_cs: ["denni poznamka", "co mam dnes", "ranni prehled", "dnesek"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-daily`:

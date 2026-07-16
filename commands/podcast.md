@@ -3,6 +3,7 @@ description: Extract metadata, transcript, and summary from a podcast episode, s
 category: research
 triggers_en: ["summarize this podcast", "podcast episode summary", "extract podcast", "what's in this episode"]
 triggers_es: ["resume este pódcast", "resumen del episodio", "extrae este pódcast", "qué dice este episodio"]
+triggers_cs: ["shrn ten podcast", "prepis epizody", "shrnuti podcastu", "co je v te epizode"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/podcast [url]`:

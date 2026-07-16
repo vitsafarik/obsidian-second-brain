@@ -3,6 +3,7 @@ description: Ingest a source into the vault - the vault rewrites itself around n
 category: research
 triggers_en: ["ingest this source", "add this article", "import this", "absorb this"]
 triggers_es: ["haz una ingesta de esta fuente", "añade este artículo", "importa esto", "absorbe esto"]
+triggers_cs: ["zpracuj zdroj", "nacti clanek", "uloz clanek do brainu"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-ingest $ARGUMENTS`:
