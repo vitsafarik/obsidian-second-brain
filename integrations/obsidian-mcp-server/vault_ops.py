@@ -74,10 +74,24 @@ _LOG_FOLDERS = {"logs", "daily", "dev logs"}
 # - a status fade: notes whose OWN metadata says they no longer hold
 #   (superseded/declined/archived/parked/on-hold...) step back
 _STALE_STATUSES = {"superseded", "declined", "rejected", "archived", "obsolete",
-                   "cancelled", "closed", "parked", "inactive", "done"}
+                   "cancelled", "closed", "parked", "inactive", "done",
+                   # cs-adaptace: Czech vault statuses (project schema in the
+                   # vault _CLAUDE.md uses aktivni|pozastaveny|hotovy) - without
+                   # these the status fade never fires on a Czech vault.
+                   "pozastaveny", "hotovy", "hotovo", "zruseny", "zruseno",
+                   "archivovany", "odlozeny", "uzavreny", "neaktivni"}
 _STATUS_RE = re.compile(r"(?m)^status:\s*['\"]?([A-Za-z0-9_-]+)")
 _DATE_RE_FM = re.compile(r"(?m)^(?:updated|date):\s*['\"]?(\d{4})-(\d{2})-(\d{2})")
-_CURRENT_INTENT = {"current", "currently", "now", "today", "still", "latest", "actual"}
+_CURRENT_INTENT = {"current", "currently", "now", "today", "still", "latest", "actual",
+                   # cs-adaptace: Czech present-intent markers. Matching is an
+                   # exact token-set intersection, so both the diacritic and the
+                   # bare-ASCII spellings are listed (queries come in both).
+                   # ASCII "stale" is deliberately absent - it collides with the
+                   # English word for outdated content; only "stále" qualifies.
+                   "aktualni", "aktuální", "aktualne", "aktuálně",
+                   "ted", "teď", "dnes", "nyni", "nyní",
+                   "momentalne", "momentálně", "porad", "pořád",
+                   "stále", "zatim", "zatím"}
 _STATUS_FADE = float(os.environ.get("OBSIDIAN_SEARCH_STATUS_FADE") or "0.6")
 
 

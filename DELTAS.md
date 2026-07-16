@@ -171,6 +171,16 @@ injects a "Skill root" block into EVERY session, not just vault sessions.
 
 ## 8. Misc
 
+- **Czech retrieval-freshness signals** (added 2026-07-16): upstream 0.12's
+  status fade and recency band are hardcoded English, so they never fired on a
+  Czech vault. `vault_ops.py` `_STALE_STATUSES` += Czech project statuses
+  (`pozastaveny`, `hotovy/hotovo`, `zruseny/zruseno`, `archivovany`,
+  `odlozeny`, `uzavreny`, `neaktivni`) and `_CURRENT_INTENT` += Czech
+  present-intent markers in both diacritic and bare-ASCII spellings (ASCII
+  `stale` deliberately excluded - collides with the English word).
+  `tests/test_multilingual_model.py::test_default_model_is_multilingual`
+  patched to clear the machine's `OBSIDIAN_EMBED_MODEL` override before
+  asserting the shipped default.
 - `hooks/load_vault_context.py`: key-files block points to `log/` (one file
   per day) instead of upstream's `log.md`.
 - `uv.lock`: no delta since 0.12 (upstream lockfile now carries the dev/pytest
