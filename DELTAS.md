@@ -99,8 +99,11 @@ kept as a fallback tag before each re-apply.
   preamble assertions); upstream's English-preamble FIXTURES elsewhere stay
   untouched (validate_note dual-accepts, vault_health is not localized).
 - **Wired into Claude Code** (user scope, `~/.claude.json` mcpServers, stdio
-  `uv run --with mcp python .../obsidian-mcp-server/server.py`) since ~2026-07.
-  Not wired into any other client.
+  `uv run --with 'mcp<2' python .../obsidian-mcp-server/server.py`) since ~2026-07.
+  Not wired into any other client. The `mcp<2` pin is a **temporary local delta**
+  (2026-07-31): `mcp` 2.0.0 dropped `mcp.server.fastmcp`, so the unpinned launch
+  crashed the server on both machines. Sent upstream as PR #185 (issue #183) -
+  drop this delta once it merges and lands here in the next re-apply.
 
 ## 5. Health/stats folder-spec localization (scripts/)
 
