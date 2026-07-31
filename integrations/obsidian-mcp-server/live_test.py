@@ -16,12 +16,12 @@ import asyncio
 import json
 import os
 import sys
+from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-SERVER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "server.py")
-
+SERVER = (Path(__file__).parent / "server.py").as_posix()
 
 async def main(query: str, do_save: bool) -> None:
     vault = os.environ.get("OBSIDIAN_VAULT_PATH", "").strip()
