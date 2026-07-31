@@ -142,3 +142,34 @@ def test_empty_folder_check_is_not_disabled_by_an_ancestor_directory_name(tmp_pa
         "the empty-folder check reported nothing because an ancestor directory "
         "outside the vault shared a name with an excluded directory"
     )
+
+
+# --- B30 -------------------------------------------------------------------
+
+def test_template_leftover_ignores_template_syntax_quoted_in_code(tmp_path):
+    import vault_health
+
+    # A dev log that *writes about* a templating engine quotes its syntax in a
+    # code span or fence. Every other scanner in this file treats code as
+    # quotation (_strip_code); the template check read the raw body, so notes
+    # discussing Eta/EJS templates were reported as unfilled templates forever.
+    quoted = (
+        "---\ntype: devlog\n---\n\n"
+        "The layout interpolates with `<%= it.name %>` per field:\n\n"
+        "```eta\n<%= it.order.id %>\n```\n"
+    )
+    real = "---\ntype: note\n---\n\nHello <%= name %>, welcome aboard.\n"
+
+    flagged = {
+        i["files"][0]
+        for i in vault_health.check_template_leftovers({
+            "log/quoted.md": {"content": quoted},
+            "log/real.md": {"content": real},
+        })
+    }
+    assert "log/quoted.md" not in flagged, (
+        "template syntax quoted inside code was reported as an unfilled template"
+    )
+    assert "log/real.md" in flagged, (
+        "a genuinely unfilled placeholder in prose must still be reported"
+    )

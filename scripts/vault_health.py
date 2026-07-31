@@ -702,7 +702,11 @@ def check_template_leftovers(notes: dict) -> list:
         parts = rel.split("/")
         if any(p.lower() == "templates" for p in parts):
             continue
-        if TEMPLATE_RE.search(note["content"]):
+        # Code is quotation, not content - the same rule the link scanners use.
+        # A dev log describing a templating engine quotes `<%= it.field %>` in a
+        # code span or fence; reading the raw body reported those notes as
+        # unfilled templates on every run and never stopped.
+        if TEMPLATE_RE.search(_strip_code(note["content"])):
             issues.append({
                 "type": "template_leftover",
                 "severity": "error",
