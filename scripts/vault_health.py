@@ -47,7 +47,11 @@ TODAY = date.today()
 EXCLUDE_DIRS = frozenset(d.lower() for d in BASE_EXCLUDE_DIRS)
 # The file index deliberately keeps Templates visible: a link pointing AT a
 # template should still resolve, even though templates are not scanned as notes.
-FILE_INDEX_EXCLUDE_DIRS = EXCLUDE_DIRS - {"templates"}
+# cs-adaptace: sablony/ (Czech templates) gets the same treatment. NOTE: log/ is
+# deliberately NOT excluded anywhere here - the frontmattered devlogs in log/prace/
+# must stay resolvable as [[wikilink]] targets; log/ is AI-first-exempt and is
+# skipped per-check below instead.
+FILE_INDEX_EXCLUDE_DIRS = EXCLUDE_DIRS - {"templates", "sablony"}
 EXCLUDE_ROOT_FILES = {"AGENTS.md", "INSTALL.md"}
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
 # A note whose entire body was accidentally saved inside a ```markdown code fence:
@@ -268,7 +272,8 @@ def load_vault(vault: Path, excludes=None, only: str | None = None) -> dict:
 # Folders whose notes recur by date with a shared descriptive title (e.g. a
 # "Weekly Review" every Friday). Same title across dates is expected here, not a
 # duplicate, so they are exempt from duplicate detection (issue #82).
-DATED_SERIES_FOLDERS = {"daily", "logs", "dev logs", "reviews"}
+DATED_SERIES_FOLDERS = {"daily", "logs", "dev logs", "reviews",
+                        "denik", "log"}  # cs-adaptace: denik = daily, log = dated series
 
 
 def _norm_title(stem: str) -> str:
@@ -349,7 +354,9 @@ def check_orphans(notes: dict) -> list:
 
     issues = []
     skip_folders = {"Daily", "Dev Logs", "Boards", "Templates", "Life Chapters",
-                    "Private", "Journal", "Faith", "Reviews", "Partner", "Family"}
+                    "Private", "Journal", "Faith", "Reviews", "Partner", "Family",
+                    # Czech vault layout (cs-adaptace): denik = daily, log = logs, nastenky = boards
+                    "denik", "log", "nastenky"}
 
     for rel, note in notes.items():
         top_folder = rel.split("/")[0] if "/" in rel else ""
@@ -397,8 +404,14 @@ def check_stale_tasks(notes: dict) -> list:
 def check_missing_frontmatter(notes: dict) -> list:
     issues = []
     skip = {"Templates", "_trash", ".obsidian"}
+    # cs-adaptace: log/ is append-only and AI-first-exempt per the vault _CLAUDE.md,
+    # so its frontmatter-less op-logs and loop outputs must not be flagged. Matched
+    # on the top folder (not substring) so 'log' never accidentally matches 'catalog/'.
+    skip_top = {"log"}
     for rel, note in notes.items():
         if any(s in rel for s in skip):
+            continue
+        if (rel.split("/")[0] if "/" in rel else "") in skip_top:
             continue
         if rel in ("Home.md", "_CLAUDE.md"):
             continue

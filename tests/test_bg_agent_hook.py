@@ -36,6 +36,11 @@ def _run_hook(stdin: str, env_extra: dict, tmp_path: Path) -> subprocess.Complet
     env = {**os.environ, "PATH": f"{stub_dir}:{os.environ['PATH']}", **env_extra}
     env.pop("OBSIDIAN_VAULT_PATH", None)
     env.pop("OBSIDIAN_BG_AGENT_ENABLED", None)
+    # cs-adaptace: the hardened hook resolves a STABLE binary (~/.local/bin/claude)
+    # before consulting PATH, so pin the stub explicitly via the documented override
+    # and isolate the vault-write mutex from the machine-shared /tmp lock.
+    env["OBSIDIAN_CLAUDE_BIN"] = str(stub)
+    env["OBSIDIAN_BG_LOCK"] = str(tmp_path / "bg-test.lock")
     env.update(env_extra)
     return subprocess.run(["bash", str(HOOK)], input=stdin, env=env,
                           capture_output=True, text=True, timeout=30)

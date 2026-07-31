@@ -7,7 +7,7 @@ and add notes to an Obsidian vault. This is the "second brain as a tool" connect
 doorway into the knowledge vault.
 
 Run:
-    OBSIDIAN_VAULT_PATH=/path/to/vault uv run --with mcp python server.py
+    OBSIDIAN_VAULT_PATH=/path/to/vault uv run --with 'mcp<2' python server.py
 
 or wire it into a client's MCP config (see README.md).
 """
@@ -51,7 +51,7 @@ def obsidian_save_note(
     type: str = "note",
     tags: list[str] | None = None,
 ) -> str:
-    """Save a new note to the vault Inbox (AI-first format).
+    """Save a new note to the vault inbox folder (vstupy/, AI-first format).
 
     Use for facts, ideas, or anything worth keeping in the knowledge vault.
     """

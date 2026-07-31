@@ -75,7 +75,7 @@ def vault_manual_block() -> str:
         f"**Key files** (absolute paths - use these directly, no discovery needed):\n"
         f"  - `{v / '_CLAUDE.md'}` - this operating manual (already loaded)\n"
         f"  - `{v / 'index.md'}` - navigation hub\n"
-        f"  - `{v / 'log.md'}` - operation log\n"
+        f"  - `{v / 'log'}/` - operation log (one file per day, cs-adaptace)\n"
         "**Do NOT run `ls`, `Glob`, or `Bash` to discover the vault or its folders.**\n"
         "Use the vault root path above and the folder names from the manual below directly.\n\n"
         "---\n\n"

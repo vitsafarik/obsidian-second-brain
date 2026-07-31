@@ -25,7 +25,8 @@ from typing import Any, Dict, List, Optional
 _VAULT_ENV = "OBSIDIAN_VAULT_PATH"
 
 # Notes added via the connector land here, separate from hand-authored notes.
-_NOTES_DIR = "Inbox"
+# Czech vault (cs-adaptace): vstupy/, never an English Inbox/.
+_NOTES_DIR = "vstupy"
 
 # Never scanned during search (config, vcs, immutable sources, exports). `.claude`
 # is a vault-local agent config dir (CLAUDE.md, commands, settings) - its markdown
@@ -38,7 +39,8 @@ _NOTES_DIR = "Inbox"
 # tests/test_exclude_policy.py pins the two together so they cannot drift again.
 _SKIP_DIRS = {".obsidian", ".git", ".trash", "_trash", ".claude", "_export",
               "templates", "node_modules", ".agents", ".codex", ".gemini",
-              ".opencode", "__pycache__"}
+              ".opencode", "__pycache__",
+              "sablony"}  # cs-adaptace: sablony/ = Czech templates, mirrors vault_scan
 
 # Directories no write tool may touch. `raw/` holds original sources the skill
 # treats as immutable, and `templates` needs to match the conventional capital-T
@@ -121,7 +123,12 @@ _LOG_FOLDERS = {"logs", "daily", "dev logs"}
 # - a status fade: notes whose OWN metadata says they no longer hold
 #   (superseded/declined/archived/parked/on-hold...) step back
 _STALE_STATUSES = {"superseded", "declined", "rejected", "archived", "obsolete",
-                   "cancelled", "closed", "parked", "inactive", "done"}
+                   "cancelled", "closed", "parked", "inactive", "done",
+                   # cs-adaptace: Czech vault statuses (project schema in the
+                   # vault _CLAUDE.md uses aktivni|pozastaveny|hotovy) - without
+                   # these the status fade never fires on a Czech vault.
+                   "pozastaveny", "hotovy", "hotovo", "zruseny", "zruseno",
+                   "archivovany", "odlozeny", "uzavreny", "neaktivni"}
 _STATUS_RE = re.compile(r"(?m)^status:\s*['\"]?([A-Za-z0-9_-]+)")
 # The supersedes REVERSE edge (fork-insights round 2, the local-first memory
 # fork): when ADR A declares `supersedes: "[[B]]"`, B should fade even if B's
@@ -131,7 +138,16 @@ _STATUS_RE = re.compile(r"(?m)^status:\s*['\"]?([A-Za-z0-9_-]+)")
 _SUPERSEDES_RE = re.compile(r"(?m)^supersedes:\s*(.+)$")
 _WIKILINK_TARGET_RE = re.compile(r"\[\[([^\]|#]+)")
 _DATE_RE_FM = re.compile(r"(?m)^(?:updated|date):\s*['\"]?(\d{4})-(\d{2})-(\d{2})")
-_CURRENT_INTENT = {"current", "currently", "now", "today", "still", "latest", "actual"}
+_CURRENT_INTENT = {"current", "currently", "now", "today", "still", "latest", "actual",
+                   # cs-adaptace: Czech present-intent markers. Matching is an
+                   # exact token-set intersection, so both the diacritic and the
+                   # bare-ASCII spellings are listed (queries come in both).
+                   # ASCII "stale" is deliberately absent - it collides with the
+                   # English word for outdated content; only "stále" qualifies.
+                   "aktualni", "aktuální", "aktualne", "aktuálně",
+                   "ted", "teď", "dnes", "nyni", "nyní",
+                   "momentalne", "momentálně", "porad", "pořád",
+                   "stále", "zatim", "zatím"}
 _STATUS_FADE = float(os.environ.get("OBSIDIAN_SEARCH_STATUS_FADE") or "0.6")
 
 
@@ -269,7 +285,7 @@ _READ_CAP = 20_000
 
 # Documented config home (architecture.md, .env.example, CONTRIBUTING.md). The
 # research toolkit loads it via python-dotenv, but this module is pure stdlib and
-# the MCP server runs under `uv run --with mcp` (no python-dotenv installed), so
+# the MCP server runs under `uv run --with 'mcp<2'` (no python-dotenv installed), so
 # we parse the one key we need by hand. Override the path in tests via
 # OBSIDIAN_ENV_FILE. (Fixes #160 - same root cause as #124, different code path.)
 _ENV_FILE = Path.home() / ".config" / "obsidian-second-brain" / ".env"
@@ -689,7 +705,7 @@ def save_note(
     note_type: str = "note",
     tags: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
-    """Write an AI-first note to the vault's Inbox folder."""
+    """Write an AI-first note to the vault's inbox folder (vstupy/, cs-adaptace)."""
     vault = resolve_vault()
     title = (title or "").strip()
     content = (content or "").strip()
@@ -712,7 +728,7 @@ def save_note(
         f"ai-first: true\n"
         f"source: mcp\n"
         f"---\n\n"
-        f"## For future Claude\n"
+        f"## Pro budoucí Claude\n"
         f"{preamble}\n\n"
         f"{content}\n"
     )
@@ -822,8 +838,9 @@ def validate_note(rel: str) -> Dict[str, Any]:
     for key in ("type", "date", "tags", "ai-first"):
         if not re.search(rf"(?mi)^{key}:", fmtext):
             issues.append(f"missing frontmatter key: {key}")
-    if "## For future Claude" not in text:
-        issues.append("missing '## For future Claude' preamble")
+    # cs-adaptace: Czech vault notes use '## Pro budoucí Claude' (also accept ASCII 'budouci').
+    if "## For future Claude" not in text and "## Pro budou" not in text:
+        issues.append("missing '## Pro budoucí Claude' preamble")
     index = _stem_index(vault)
     seen = set()
     for link in _wikilinks(text):

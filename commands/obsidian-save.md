@@ -3,6 +3,7 @@ description: Save everything worth keeping from this conversation to the vault
 category: vault
 trigger-mode: proactive
 triggers_en: ["save this", "save the conversation", "save to vault", "obsidian save"]
+triggers_cs: ["uloz to", "uloz do brainu", "uloz konverzaci", "zapis to do vaultu"]
 triggers_es: ["guarda esto", "guarda la conversación", "guarda al vault"]
 triggers_pt: ["salve isto", "salve a conversa", "salve no vault", "obsidian save"]
 triggers_zh: ["保存这段对话", "把值得保留的内容存进知识库", "把刚才聊的整理进笔记", "保存到我的知识库"]

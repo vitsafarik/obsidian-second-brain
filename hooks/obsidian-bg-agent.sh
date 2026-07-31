@@ -20,6 +20,14 @@
 #   4. Make executable: chmod +x hooks/obsidian-bg-agent.sh
 # To disable again: clear OBSIDIAN_BG_AGENT_ENABLED (the gate below makes that enough).
 #
+# Optional env (cs-adaptace hardening):
+#   OBSIDIAN_CLAUDE_BIN  absolute path to a stable `claude` binary (auto-detected
+#                        otherwise). The interactive `claude` on PATH is often a
+#                        temporary per-session shim that does not exist headless.
+#   OBSIDIAN_BG_LOCK     override the vault-write mutex path (used by tests; the
+#                        default is shared with the living-loop vault-sync
+#                        publisher - do not change it live).
+#
 # Optional:
 #   - CLAUDE_VAULT_PROPAGATION=1 lets the origin project's CLAUDE.md steer
 #     propagation. If set, and the compacting project has a "## Vault
@@ -74,6 +82,58 @@ log_run() {
   jq -nc "${jq_args[@]}" "$filter}" >> "$file" 2>/dev/null \
     || printf '{"run_id":"%s","status":"_log_run_error","for":"%s"}\n' "$RUN_ID" "$status" >> "$file"
 }
+
+# --- Detached worker (cs-adaptace) -------------------------------------------
+# Re-invoked as `nohup "$0" --bg-worker` so the async-hook cleanup cannot kill a
+# multi-minute agent run, and so the write can take the machine-wide vault mutex
+# that the living-loop vault-sync publisher also holds. Upstream's burst-dedup
+# lock below only drops duplicate hook fires; it deliberately does not serialize
+# the run itself, which is exactly what a commit/push publisher needs it to do.
+# Reads BG_* from the inherited environment.
+if [[ "${1:-}" == "--bg-worker" ]]; then
+  RUN_ID="${BG_RUN_ID:-$RUN_ID}"
+  START_TIME="${BG_START:-$START_TIME}"
+  WRITE_LOCK="${OBSIDIAN_BG_LOCK:-/tmp/secondbrain-vault.write.lock}"
+
+  tries=0
+  while ! mkdir "$WRITE_LOCK" 2>/dev/null; do
+    # stale-lock breaker: reclaim if the recorded holder is gone
+    if [[ -f "$WRITE_LOCK/pid" ]] && ! kill -0 "$(cat "$WRITE_LOCK/pid" 2>/dev/null)" 2>/dev/null; then
+      rm -rf "$WRITE_LOCK" 2>/dev/null; continue
+    fi
+    tries=$((tries + 1))
+    if [[ "$tries" -gt 600 ]]; then
+      printf '%s bg-agent could not acquire vault mutex in 600s, skipping\n' "$(date '+%F %T')" >> "$BG_LOG"
+      log_run "write_lock_timeout"
+      exit 0
+    fi
+    sleep 1
+  done
+  echo $$ > "$WRITE_LOCK/pid"
+  trap 'rm -rf "$WRITE_LOCK"' EXIT
+
+  cd "$BG_VAULT" || exit 0
+  # Current with the remote only when the tree is clean (during an active session
+  # it is usually dirty, so this is a no-op and never clobbers in-progress work).
+  if git diff --quiet 2>/dev/null && git diff --cached --quiet 2>/dev/null; then
+    git pull --ff-only --quiet 2>/dev/null || true
+  fi
+
+  printf '%s START bg-agent write (claude=%s)\n' "$(date '+%F %T')" "$BG_CLAUDE" >> "$BG_LOG"
+  # --allowedTools enforces the CONSTRAINTS block the prompt already states.
+  # The compaction summary can carry text that originated from the open web
+  # (a page read by /research, a transcript, a cloned repo's README), so the
+  # tool surface must be a real boundary rather than an instruction the model
+  # is asked to respect. Filesystem only: no Bash, no network.
+  "$BG_CLAUDE" --dangerously-skip-permissions --strict-mcp-config \
+    --allowedTools "Read,Write,Edit,Glob,Grep" \
+    -p < "$BG_PROMPT_FILE" >> "$BG_LOG" 2>&1
+  EXIT_CODE=$?
+  rm -f "$BG_PROMPT_FILE"
+  printf '%s END bg-agent write rc=%s\n' "$(date '+%F %T')" "$EXIT_CODE" >> "$BG_LOG"
+  log_run "completed" duration_sec "$(( $(date +%s) - START_TIME ))" exit_code "$EXIT_CODE"
+  exit 0
+fi
 
 # --- Burst-dedup lock --------------------------------------------------------
 # Two sessions compacting within seconds of each other fire two hooks at the
@@ -168,17 +228,21 @@ INSTRUCTIONS:
    - Ideas, learnings, or insights
    - Shoutouts or mentions worth logging
 3. Before creating any note, search for an existing one. Never duplicate.
-4. Update or create notes as appropriate. Resolve every folder from _CLAUDE.md's
-   Folder Map (wiki-style wiki/entities|projects|logs|daily, Obsidian-style
-   People/|Projects/|Dev Logs/|Daily/ - use whichever layout the vault has):
-   - People: update the person's note interaction log; create a stub if missing
-   - Projects: update status, Recent Activity, Key Decisions sections
-   - Dev work: create or update the dev log YYYY-MM-DD - Project.md; link from project note
-   - Tasks: add to the right kanban board column (use TODAY date from above)
-   - Ideas: save to the ideas/concepts folder
-   - Decisions: append to the relevant project note's Key Decisions section
-5. Update today's daily note ([TODAY].md in the resolved daily folder):
-   - Create it from the Daily Note template if it does not exist
+   This vault is CZECH. Use ONLY the Czech folder names below. NEVER create English
+   folders (no People/, Projects/, Daily/, Ideas/, Boards/, Dev Logs/). Folder map:
+   People -> lide/, Projects -> projekty/, Daily -> denik/ (YYYY-MM-DD.md),
+   Ideas -> napady/, Boards -> nastenky/ (Obsidian Kanban), Dev Logs -> log/prace/,
+   operational log -> log/YYYY-MM-DD.md (append-only). Write note bodies in Czech,
+   including the "## Pro budouci Claude" preamble (not "## For future Claude").
+4. Update or create notes as appropriate:
+   - People: update lide/jmeno.md interaction log; create a stub if missing
+   - Projects: update status, recent activity, key decisions sections in projekty/
+   - Dev work: create or update log/prace/YYYY-MM-DD-projekt.md; link from project note
+   - Tasks: add to the right column of the existing board nastenky/ukoly.md (use TODAY date)
+   - Ideas: save to napady/
+   - Decisions: append to the relevant projekty/ note's decisions section
+5. Update today's daily note (denik/[TODAY].md using the TODAY value above):
+   - Create it from the daily template in sablony/ if it does not exist
    - Link everything you touched - people, projects, dev logs, decisions
 6. Propagate everywhere:
    - Nothing is saved in isolation
@@ -218,19 +282,26 @@ log_run "starting" summary_chars "${#SUMMARY}" hints_chars "${#PROJECT_HINTS}"
 # and wasting startup - and worse, for users running an MCP-based bot (e.g. a
 # Telegram/Slack integration) alongside Claude Code, this background run can
 # seize the bot's single MCP session and disrupt the live poller.
-(
-  cd "$VAULT" || exit 1
-  # --allowedTools enforces the CONSTRAINTS block the prompt already states.
-  # The compaction summary can carry text that originated from the open web
-  # (a page read by /research, a transcript, a cloned repo's README), so the
-  # tool surface must be a real boundary rather than an instruction the model
-  # is asked to respect. Filesystem only: no Bash, no network.
-  claude --dangerously-skip-permissions --strict-mcp-config \
-    --allowedTools "Read,Write,Edit,Glob,Grep" \
-    -p < "$PROMPT_FILE" >> "$BG_LOG" 2>&1
-  EXIT_CODE=$?
-  rm -f "$PROMPT_FILE"
-  log_run "completed" duration_sec "$(( $(date +%s) - START_TIME ))" exit_code "$EXIT_CODE"
-) &
+# cs-adaptace: resolve a STABLE claude binary. The interactive `claude` on PATH
+# is often a temporary per-session shim that no longer exists by the time this
+# hook runs headless, and the failure is invisible in a detached subshell.
+CLAUDE_BIN="${OBSIDIAN_CLAUDE_BIN:-}"
+if [[ -z "$CLAUDE_BIN" || ! -x "$CLAUDE_BIN" ]]; then
+  for c in "$HOME/.local/bin/claude" "$HOME/.claude/local/claude" /opt/homebrew/bin/claude /usr/local/bin/claude; do
+    [[ -x "$c" ]] && { CLAUDE_BIN="$c"; break; }
+  done
+fi
+if [[ -z "$CLAUDE_BIN" || ! -x "$CLAUDE_BIN" ]]; then
+  printf '%s no stable claude binary found (set OBSIDIAN_CLAUDE_BIN)\n' "$(date '+%F %T')" >> "$BG_LOG"
+  log_run "no_claude_binary"
+  exit 0
+fi
+
+# Hand off to the detached worker: it survives async-hook cleanup and takes the
+# vault-write mutex shared with the living-loop publisher (see the branch above).
+export BG_VAULT="$VAULT" BG_CLAUDE="$CLAUDE_BIN" BG_PROMPT_FILE="$PROMPT_FILE" \
+       BG_LOG="$BG_LOG" BG_RUN_ID="$RUN_ID" BG_START="$START_TIME"
+nohup "$0" --bg-worker >/dev/null 2>&1 &
+disown 2>/dev/null || true
 
 exit 0

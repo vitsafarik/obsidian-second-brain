@@ -52,6 +52,11 @@ BASE_EXCLUDE_DIRS: frozenset[str] = frozenset({
     # Spelled capital-T by the bootstrapper and lowercase by three tools, hence
     # the case-insensitive matching below.
     "templates",
+    # cs-adaptace: sablony/ is the Czech vault's templates folder. Same class as
+    # "templates" above, and the case-insensitive match does not catch it.
+    # vault_health keeps it in the FILE index (links into it must still resolve),
+    # exactly as it does for Templates.
+    "sablony",
 })
 
 # Per-tool additions, kept separate because each encodes a deliberate decision

@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fork (cs-adaptace)
+
+- **Re-applied the Czech adaptation onto upstream 0.14 "The Harvest"** (2026-07-31;
+  fallback tag `cs-adaptace-pre-0.14`, 93 upstream commits absorbed including
+  0.13 "The Open Standard"). All 46 commands keep `triggers_cs` next to upstream's
+  `triggers_es`/`triggers_pt`/`triggers_zh`; the two new commands
+  (`/obsidian-brainstorm`, `/obsidian-reindex`) got freshly authored Czech phrases.
+  Three deltas were re-expressed rather than re-applied, because upstream
+  refactored underneath them: the exclude policy now lives in
+  `scripts/vault_scan.BASE_EXCLUDE_DIRS` (so `sablony` is declared there and in the
+  MCP server's pinned literal instead of in every tool), and the PostCompact hook's
+  hardening became a `--bg-worker` branch layered on upstream's rewritten agent
+  (JSONL run log, burst-dedup lock, stdin prompt, `--strict-mcp-config`) instead of
+  a replacement for it. Verified: 559/559 tests, 6-platform build, ruff clean,
+  vault_health 393 notes / 38 issues. Full inventory in `DELTAS.md`.
+
+
 ### Changed
 
 - **MCP tool names carried the plugin name twice (#177, reported by @mpuglin).** The `mcpServers` key in `.claude-plugin/plugin.json` was also `obsidian-second-brain`, and Claude Code composes tool names as `mcp__plugin_<plugin>_<server>__<tool>` - so every tool arrived as `mcp__plugin_obsidian-second-brain_obsidian-second-brain__obsidian_search`, 57 characters of prefix of which 21 were the name repeated for nothing. In a dropdown or a permission prompt the prefix crowds out the part that identifies the tool. The server key is now `vault`, giving `mcp__plugin_obsidian-second-brain_vault__obsidian_search`. The plugin name, install identity, marketplace entry and slash-command namespace are all unchanged; the reported request was to rename the plugin itself to `o2b`, which was declined because the name is the install identity of the repository and the commands are already `obsidian-*`, so `o2b:obsidian-daily` would save little. **Upgrade note:** if you allowlisted these tools by their full name in `settings.json`, update the server segment from `obsidian-second-brain` to `vault`.

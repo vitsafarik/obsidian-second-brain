@@ -20,9 +20,22 @@ import semantic_search as ss  # noqa: E402
 import vault_ops  # noqa: E402
 
 
-def test_default_model_is_multilingual():
-    assert ss.EMBED_MODEL == "bge-m3"
-    assert vault_ops._EMBED_MODEL == "bge-m3"
+def test_default_model_is_multilingual(monkeypatch):
+    # cs-adaptace: this machine pins OBSIDIAN_EMBED_MODEL (qwen3-embedding:4b)
+    # in the session env, which the modules read at import time. The test's
+    # subject is the shipped DEFAULT, so re-evaluate both modules with the
+    # override removed, then restore the live state.
+    import importlib
+    monkeypatch.delenv("OBSIDIAN_EMBED_MODEL", raising=False)
+    importlib.reload(ss)
+    importlib.reload(vault_ops)
+    try:
+        assert ss.EMBED_MODEL == "bge-m3"
+        assert vault_ops._EMBED_MODEL == "bge-m3"
+    finally:
+        monkeypatch.undo()
+        importlib.reload(ss)
+        importlib.reload(vault_ops)
 
 
 def test_build_cache_invalidates_on_model_change(tmp_path, monkeypatch):

@@ -16,7 +16,7 @@ Data tools (deterministic primitives):
 |---|---|
 | `obsidian_search(query, limit=6)` | Ranked keyword search across vault notes; returns snippets + paths |
 | `obsidian_read_note(path)` | Read a full note by vault-relative path (path-traversal guarded) |
-| `obsidian_save_note(title, content, type, tags)` | Save a new AI-first note to the vault `Inbox/` |
+| `obsidian_save_note(title, content, type, tags)` | Save a new AI-first note to the vault `vstupy/` |
 | `obsidian_capture(text, tags)` | Quick-capture an idea as a lightweight `type: idea` note |
 
 Curator tools (guarded mutation + graph + health, per Issue #79):
@@ -45,7 +45,7 @@ Requires the vault path in the environment and the `mcp` package:
 
 ```bash
 export OBSIDIAN_VAULT_PATH="/path/to/your/vault"
-uv run --with mcp python integrations/obsidian-mcp-server/server.py
+uv run --with 'mcp<2' python integrations/obsidian-mcp-server/server.py
 ```
 
 ## Wire it into a client
@@ -57,7 +57,7 @@ Hermes Agent and most MCP clients take a launch command. Example client config e
   "mcpServers": {
     "obsidian-second-brain": {
       "command": "uv",
-      "args": ["run", "--with", "mcp", "python", "/abs/path/integrations/obsidian-mcp-server/server.py"],
+      "args": ["run", "--with", "mcp<2", "python", "/abs/path/integrations/obsidian-mcp-server/server.py"],
       "env": { "OBSIDIAN_VAULT_PATH": "/path/to/your/vault" }
     }
   }
@@ -72,15 +72,15 @@ For Hermes specifically, add the server to its MCP config; Hermes picks the tool
 
 ```bash
 # read-only (safe against a real vault)
-OBSIDIAN_VAULT_PATH=/path/to/vault uv run --with mcp python live_test.py "your query"
-# also write one test note to Inbox/
-OBSIDIAN_VAULT_PATH=/path/to/vault uv run --with mcp python live_test.py --save "your query"
+OBSIDIAN_VAULT_PATH=/path/to/vault uv run --with 'mcp<2' python live_test.py "your query"
+# also write one test note to vstupy/
+OBSIDIAN_VAULT_PATH=/path/to/vault uv run --with 'mcp<2' python live_test.py --save "your query"
 ```
 
 Live-test checklist:
   - [x] Server starts and an MCP client completes the handshake.
   - [x] Client lists the three tools.
-  - [x] Client calls `obsidian_search` (results), `obsidian_read_note` (content), `obsidian_save_note` (writes a valid AI-first note to `Inbox/`). Verified 2026-06-06 via `live_test.py` against both a throwaway vault and a real vault (read-only).
+  - [x] Client calls `obsidian_search` (results), `obsidian_read_note` (content), `obsidian_save_note` (writes a valid AI-first note to `vstupy/`). Verified 2026-06-06 via `live_test.py` against both a throwaway vault and a real vault (read-only).
   - [ ] Connect from a real Hermes instance and confirm the tools appear via `discover_mcp_tools()`.
 
 ## Notes
