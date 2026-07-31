@@ -18,8 +18,9 @@ kept as a fallback tag before each re-apply.
   0.12 base, absorbing 0.13 "The Open Standard" and 0.14). Fallback tag:
   `cs-adaptace-pre-0.14`. Verified after re-apply: triggers_cs 46/46 (the two new
   upstream commands, `/obsidian-brainstorm` and `/obsidian-reindex`, got freshly
-  authored Czech phrases), `uv run pytest` 559/559, `bash scripts/build.sh` all 6
-  platforms with the Czech section present in the dispatchers, `uvx ruff check`
+  authored Czech phrases), `uv run pytest` 559/559, `bash scripts/build.sh` all 7
+  platforms (0.14 added the agent-skills build) with the Czech section present
+  in the dispatchers, `uvx ruff check`
   clean (upstream cleared the 17-error debt), vault_health on the real vault
   393 notes / 38 issues under 0.14's checks (wanted 23, template leftovers 5 -
   the Eta-syntax false positives the nightly audit already flagged, orphans 5,

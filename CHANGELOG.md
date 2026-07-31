@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   MCP server's pinned literal instead of in every tool), and the PostCompact hook's
   hardening became a `--bg-worker` branch layered on upstream's rewritten agent
   (JSONL run log, burst-dedup lock, stdin prompt, `--strict-mcp-config`) instead of
-  a replacement for it. Verified: 559/559 tests, 6-platform build, ruff clean,
+  a replacement for it. Verified: 559/559 tests, 7-platform build, ruff clean,
   vault_health 393 notes / 38 issues. Full inventory in `DELTAS.md`.
 
 
