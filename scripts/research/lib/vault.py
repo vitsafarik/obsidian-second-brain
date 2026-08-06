@@ -18,15 +18,28 @@ from urllib.parse import quote
 
 from .config import VAULT_PATH
 
-# Subfolder routing per command (relative to vault root, under Research/)
+# Subfolder routing per command (relative to vault root, under Research/).
+# Ceske vaulty maji zakaz anglickych slozek (_CLAUDE.md), proto se koren hleda:
+# existuje-li vstupy/ (rizeny inbox), vysledky researche padaji tam bez podslozek.
+_RESEARCH_ROOT = Path("Research")
 SUBFOLDERS = {
-    "x-read":      Path("Research") / "X-reads",
-    "x-pulse":     Path("Research") / "X-pulse",
-    "research":    Path("Research") / "Web",
-    "research-deep": Path("Research") / "Deep",
-    "youtube":     Path("Research") / "YouTube",
-    "podcast":     Path("Research") / "Podcasts",
+    "x-read":      _RESEARCH_ROOT / "X-reads",
+    "x-pulse":     _RESEARCH_ROOT / "X-pulse",
+    "research":    _RESEARCH_ROOT / "Web",
+    "research-deep": _RESEARCH_ROOT / "Deep",
+    "youtube":     _RESEARCH_ROOT / "YouTube",
+    "podcast":     _RESEARCH_ROOT / "Podcasts",
 }
+# Vaulty s vlastnim inboxem (prvni existujici vyhrava, jinak Research/ jako driv).
+INBOX_DIRS = ("vstupy", "Inputs", "Inbox")
+
+
+def subfolder_for(command: str) -> Path:
+    """Kam ulozit vystup daneho commandu, s ohledem na layout vaultu."""
+    for name in INBOX_DIRS:
+        if (VAULT_PATH / name).is_dir():
+            return Path(name)
+    return SUBFOLDERS.get(command, _RESEARCH_ROOT)
 
 
 def slugify(text: str, max_len: int = 80) -> str:
@@ -47,7 +60,7 @@ def write_note(command: str, topic: str, frontmatter: dict[str, Any], body: str)
     """Write a research note to the vault. Returns the absolute path."""
     if command not in SUBFOLDERS:
         raise ValueError(f"Unknown command: {command}")
-    folder = VAULT_PATH / SUBFOLDERS[command]
+    folder = VAULT_PATH / subfolder_for(command)
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / filename_for(command, topic)
 
@@ -127,20 +140,47 @@ def print_save_links(note_path: Path, file=None) -> None:
             pass  # auto-open is a nice-to-have, never block the save flow
 
 
-def append_to_log(operation_summary: str) -> None:
-    """Append to the vault's log.md per _CLAUDE.md rules."""
-    log_path = VAULT_PATH / "log.md"
+# Layout vaultu se lisi podle jazyka a verze bootstrapu, cesty se proto HLEDAJI
+# a nehardcoduji (stejna trida chyby jako VAULT_SCAN_DIRS, opraveno 2026-08-06).
+LOG_DIRS = ("log", "Logs")                       # per-den operační log
+DAILY_DIRS = ("denik", "Daily", "daily", "wiki/daily")
+
+
+def _log_target() -> tuple[Path, bool]:
+    """Vrátí (cesta, per_day). Per-den log má přednost před root log.md."""
     date = datetime.now().strftime("%Y-%m-%d")
-    entry = f"\n## [{date}] research-toolkit | {operation_summary}\n"
+    for name in LOG_DIRS:
+        d = VAULT_PATH / name
+        if d.is_dir():
+            return d / f"{date}.md", True
+    return VAULT_PATH / "log.md", False
+
+
+def append_to_log(operation_summary: str) -> None:
+    """Append to the vault's operation log (per-day file when the vault has one)."""
+    log_path, per_day = _log_target()
+    now = datetime.now()
+    stamp = now.strftime("%H:%M") if per_day else now.strftime("%Y-%m-%d")
+    entry = f"\n## [{stamp}] research-toolkit | {operation_summary}\n"
+    if per_day and not log_path.exists():
+        log_path.write_text(f"# Log {now.strftime('%Y-%m-%d')}\n")
     with log_path.open("a") as f:
         f.write(entry)
 
 
+def _daily_path() -> Path | None:
+    date = datetime.now().strftime("%Y-%m-%d")
+    for name in DAILY_DIRS:
+        p = VAULT_PATH / name / f"{date}.md"
+        if p.exists():
+            return p
+    return None
+
+
 def append_to_daily(summary_md: str) -> bool:
     """Append a research summary to today's daily note. Returns True if appended."""
-    date = datetime.now().strftime("%Y-%m-%d")
-    daily_path = VAULT_PATH / "wiki" / "daily" / f"{date}.md"
-    if not daily_path.exists():
+    daily_path = _daily_path()
+    if daily_path is None:
         return False
     current = daily_path.read_text()
     block = f"\n### Research - {datetime.now().strftime('%H:%M')}\n\n{summary_md.strip()}\n"

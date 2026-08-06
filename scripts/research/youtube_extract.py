@@ -103,7 +103,7 @@ def _extract_visual(video_id: str, title: str, max_frames: int) -> dict | None:
         # stays in work_dir for Claude to read this session.
         date = datetime.now().strftime("%Y-%m-%d")
         slug = vault.slugify(title) or "untitled"
-        att_dir = vault.VAULT_PATH / vault.SUBFOLDERS["youtube"] / "attachments" / f"{date}-{slug}"
+        att_dir = vault.VAULT_PATH / vault.subfolder_for("youtube") / "attachments" / f"{date}-{slug}"
         att_dir.mkdir(parents=True, exist_ok=True)
         hero_rel: list[tuple[str, float]] = []
         for i, f in enumerate(hero):
