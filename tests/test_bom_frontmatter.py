@@ -27,7 +27,7 @@ BOM_NOTE = (
     "  - Bommy Project\n"
     "ai-first: true\n"
     "---\n\n"
-    "## For future Claude\n\nA healthy note saved by a BOM-adding editor.\n"
+    "## For future agent\n\nA healthy note saved by a BOM-adding editor.\n"
 )
 
 

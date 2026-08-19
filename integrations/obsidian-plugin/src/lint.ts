@@ -28,7 +28,9 @@ export interface NoteInput {
 }
 
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/;
-const PREAMBLE = /^##\s+For future Claude\s*$/m;
+// New notes use the platform-neutral label. Existing Claude/Codex-labelled
+// notes remain valid durable memory and should not all become lint failures.
+const PREAMBLE = /^##\s+For future (agent|AI|Claude|Codex)\s*$/m;
 
 /**
  * A cited source: a full URL, a www host, or a bare domain.
@@ -106,7 +108,7 @@ export function lintNote(note: NoteInput): Finding[] {
       rule: "preamble",
       severity: "error",
       message:
-        "No `## For future Claude` preamble. An agent retrieving this note alone " +
+        "No `## For future agent` preamble. An agent retrieving this note alone " +
         "has to read all of it to find out whether it is relevant.",
     });
   }

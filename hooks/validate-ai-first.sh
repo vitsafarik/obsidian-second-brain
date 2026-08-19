@@ -2,19 +2,19 @@
 # =============================================================================
 # validate-ai-first.sh - Enforce the AI-first vault rule on Write/Edit
 # =============================================================================
-# Fires as a Claude Code PostToolUse hook after Write/Edit. Inspects the
-# written file and warns if it does not follow the AI-first rule defined in
-# references/ai-first-rules.md.
+# Fires as a Claude Code PostToolUse hook after Write/Edit (terminal) or
+# create_file (VS Code extension). Inspects the written file and warns if it
+# does not follow the AI-first rule defined in references/ai-first-rules.md.
 #
 # This is the write-time enforcement primitive: the vault stays AI-first
-# because every write is checked, not because future-Claude remembers all
+# because every write is checked, not because future agent remembers all
 # seven rules every time.
 #
 # Validation (warnings, non-blocking):
 #   1. Frontmatter delimiters (--- ... ---) are well-formed
 #   2. No tabs inside frontmatter (YAML requires spaces)
 #   3. Required AI-first fields present: date, type, tags, ai-first: true
-#   4. `## For future Claude` preamble exists in the body
+#   4. `## For future agent` preamble exists in the body
 #   5. No banned non-ASCII substitution characters (em/en-dashes, curly
 #      quotes, smart apostrophes, Unicode math). Reports codepoint +
 #      suggested ASCII replacement. Explicit ban list; anything not in
@@ -30,24 +30,76 @@
 #   - Skips any file not ending in .md
 #
 # Exit codes:
-#   0 = pass (silent)
-#   1 = warn (issue surfaced; write is NOT reverted)
+#   0 = pass (silent), or warn via JSON on stdout (write is NOT reverted)
 # =============================================================================
+
+# Warn via Claude Code hook JSON (systemMessage + additionalContext). stderr
+# is mirrored for logs; exit 0 so the host parses stdout.
+emit_ai_first_warning() {
+  local msg="$1"
+  printf '%s\n' "$msg" >&2
+  # cs-adaptace: severity split. Upstream escalated EVERY finding to
+  # `decision: "block"`, which makes the PostToolUse host hand the warning back
+  # as a correction task. For structural defects and secrets that is right. For
+  # the banned-character check it is a trap on this vault: 537 of 632 notes
+  # already carry a banned character (mostly U+2026 in imported prose), so any
+  # edit to an old note would bounce and push the agent to rewrite lines it never
+  # touched. So: typography alone advises, everything else still blocks.
+  local severity="${2:-block}"
+  if [[ "$severity" == "block" ]]; then
+    jq -n --arg msg "$msg" '{
+      systemMessage: $msg,
+      decision: "block",
+      reason: $msg,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: $msg
+      }
+    }'
+  else
+    jq -n --arg msg "$msg" '{
+      systemMessage: $msg,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: $msg
+      }
+    }'
+  fi
+  exit 0
+}
 
 INPUT=$(cat)
 
-# Extract the written file path. Claude Code hook payload puts it at
-# .tool_input.file_path for Write and Edit.
-FILE=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // .args.file_path // ""' 2>/dev/null)
+# Write/Edit: tool_input.file_path. VS Code create_file: tool_input.filePath.
+FILE=$(printf '%s' "$INPUT" | jq -r '
+  .tool_input.file_path
+  // .tool_input.filePath
+  // .args.file_path
+  // .args.filePath
+  // ""
+' 2>/dev/null)
 
 # Bail silently on unparseable input or empty path
 [[ -z "$FILE" ]] && exit 0
 [[ "$FILE" == *.md ]] || exit 0
 [[ -f "$FILE" ]] || exit 0
 
-# Only validate inside the configured vault
+# Only validate inside the configured vault. Environment wins; fall back to the
+# documented config .env, because a plugin-marketplace install configures the
+# vault there and never exports the variable - so an env-only check made this
+# hook a silent no-op for exactly the installs that need it most. Same root
+# cause as #160 (MCP server) and #124 (research toolkit); this is the third code
+# path, swept when the hook turned out never to have been wired at all.
 VAULT="${OBSIDIAN_VAULT_PATH:-}"
+if [[ -z "$VAULT" ]]; then
+  ENV_FILE="${OBSIDIAN_ENV_FILE:-$HOME/.config/obsidian-second-brain/.env}"
+  if [[ -r "$ENV_FILE" ]]; then
+    VAULT=$(sed -n 's/^[[:space:]]*OBSIDIAN_VAULT_PATH[[:space:]]*=[[:space:]]*//p' "$ENV_FILE" \
+      | tail -n 1 | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+  fi
+fi
 [[ -z "$VAULT" ]] && exit 0
+VAULT="${VAULT%/}"
 case "$FILE" in
   "$VAULT"/*) ;;
   *) exit 0 ;;
@@ -76,11 +128,9 @@ WARNINGS=()
 # ── Check 1: frontmatter delimiters ──────────────────────────────────────────
 FIRST_LINE=$(head -1 "$FILE")
 if [[ "$FIRST_LINE" != "---" ]]; then
-  WARNINGS+=("$BASENAME has no frontmatter (expected --- on the first line). AI-first notes need date/type/tags/ai-first metadata.")
-  # Without frontmatter we can't run the other checks meaningfully — surface
+  # Without frontmatter we can't run the other checks meaningfully - surface
   # this single warning and exit.
-  printf 'AI-first warning: %s\n' "${WARNINGS[0]}" >&2
-  exit 1
+  emit_ai_first_warning "AI-first warning: $BASENAME has no frontmatter (expected --- on the first line). AI-first notes need date/type/tags/ai-first metadata."
 fi
 
 DELIMITER_COUNT=$(grep -c '^---$' "$FILE")
@@ -111,12 +161,14 @@ if ! printf '%s\n' "$FRONTMATTER" | grep -qE '^ai-first:[[:space:]]*true[[:space
   WARNINGS+=("$BASENAME missing 'ai-first: true' in frontmatter.")
 fi
 
-# ── Check 4: 'For future Claude' preamble in body ────────────────────────────
-# Czech vaults (cs-adaptace) use '## Pro budouci Claude' / '## Pro budoucí Claude';
-# match the locale-safe prefix to accept both languages.
+# ── Check 4: 'For future agent' preamble in body ─────────────────────────────
+# Upstream renamed the vocabulary from 'For future Claude' to 'For future agent'
+# and now anchors the whole heading. Czech vaults (cs-adaptace) use
+# '## Pro budouci Claude' and the diacritic form '## Pro budoucí Claude', so the Czech
+# arm stays a prefix match and rides alongside upstream's exact set.
 BODY=$(awk '/^---$/{c++; if (c<2) next; next} c>=2' "$FILE")
-if ! printf '%s\n' "$BODY" | grep -qE '^##[[:space:]]+(For future Claude|Pro budouc)' ; then
-  WARNINGS+=("$BASENAME missing '## For future Claude' (or '## Pro budouci Claude') preamble (required by ai-first-rules.md rule #2).")
+if ! printf '%s\n' "$BODY" | grep -qE '^##[[:space:]]+(For future (agent|AI|Claude|Codex)[[:space:]]*$|Pro budouc)' ; then
+  WARNINGS+=("$BASENAME missing '## For future agent' (or '## Pro budouci Claude') preamble (required by ai-first-rules.md rule #2).")
 fi
 
 # ── Check 6: bi-temporal timeline on stateful notes ──────────────────────────
@@ -217,12 +269,31 @@ fi
 
 # ── Emit warnings ────────────────────────────────────────────────────────────
 if [[ ${#WARNINGS[@]} -gt 0 ]]; then
-  printf 'AI-first warnings on %s:\n' "$BASENAME" >&2
+  MSG="AI-first warnings on ${BASENAME}:"$'\n'
   for w in "${WARNINGS[@]}"; do
-    printf '  - %s\n' "$w" >&2
+    MSG+="  - ${w}"$'\n'
   done
-  printf '\nSee references/ai-first-rules.md for the full spec.\n' >&2
-  exit 1
+  MSG+=$'\n'"See references/ai-first-rules.md for the full spec."
+  # Count findings that are NOT the banned-character block (its header plus the
+  # indented `line N:` details). Zero of them means typography is the only
+  # complaint - advise instead of blocking (see emit_ai_first_warning).
+  OTHER_FINDINGS=0
+  IN_BANNED=0
+  for w in "${WARNINGS[@]}"; do
+    if [[ "$w" == *"contains banned non-ASCII substitution characters:" ]]; then
+      IN_BANNED=1; continue
+    fi
+    if [[ $IN_BANNED -eq 1 && "$w" =~ ^[[:space:]]+line[[:space:]] ]]; then
+      continue
+    fi
+    IN_BANNED=0
+    OTHER_FINDINGS=$((OTHER_FINDINGS + 1))
+  done
+  if [[ $OTHER_FINDINGS -eq 0 ]]; then
+    emit_ai_first_warning "$MSG" "warn"
+  else
+    emit_ai_first_warning "$MSG" "block"
+  fi
 fi
 
 exit 0

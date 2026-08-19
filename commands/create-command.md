@@ -3,7 +3,7 @@ description: Create a new obsidian-second-brain command via interview - zero mar
 category: meta
 triggers_en: ["create command", "new command", "add a command", "scaffold a command"]
 triggers_cs: ["vytvor novy prikaz", "novy prikaz", "pridej prikaz"]
-triggers_es: ["crea un comando", "nuevo comando", "añade un comando", "monta un comando"]
+triggers_es: ["crea un comando", "nuevo comando", "añade un comando", "hazme un comando nuevo", "arma un comando"]
 triggers_pt: ["crie um comando", "novo comando", "adicione um comando", "gere um comando"]
 triggers_zh: ["创建一个新命令", "新增 Obsidian 命令", "帮我写个命令", "生成命令模板"]
 ---
@@ -143,7 +143,7 @@ Use the obsidian-second-brain skill. Execute `/<name> $ARGUMENTS`:
 ---
 
 <AI-first footer ONLY if Phase 6 = yes>
-**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future Claude` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. The vault is for future-Claude retrieval - not human reading.
+**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future agent` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. If that path does not resolve from your working directory, search upward for it; if you still cannot read it, say so before writing rather than producing a note that silently skips the rule. The vault is for future agent retrieval - not human reading.
 ```
 
 Write the file to `commands/<name>.md` using the Write tool.
@@ -166,6 +166,6 @@ If the new command writes to the vault and the user has the validate-ai-first ho
 
 ---
 
-**Note for future-Claude:** This is a command that creates commands. Do not run it recursively on itself. Do not rewrite this file when invoked - write a NEW `commands/<name>.md` based on the interview.
+**Note for future agent:** This is a command that creates commands. Do not run it recursively on itself. Do not rewrite this file when invoked - write a NEW `commands/<name>.md` based on the interview.
 
 **Anti-fabrication:** Search exhaustively before claiming any note, person, or file is absent - false absence is the most common failure mode - and never invent facts, entities, or dates (mark unknowns as `TBD`). See the anti-fabrication and search-completeness hard rules in `references/ai-first-rules.md`.

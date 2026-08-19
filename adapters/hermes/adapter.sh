@@ -25,6 +25,20 @@ HERMES_SKILLS_DIR="skills"
 HERMES_AUTHOR="Eugeniu Ghelbur"
 HERMES_LICENSE="MIT"
 
+# Where INSTALL.md below tells the user to copy the tree, and therefore the only
+# path a `uv run --directory` can name. It has to be a concrete path rather than
+# `.`: this adapter's own install doc says "point Hermes at your vault as the
+# working directory", and a cron blueprint is armed with `--workdir <vault>`, so
+# the CWD at run time is the vault, never the skill root. `--directory "."` from
+# there resolves to the vault (no pyproject.toml, no scripts/) and every
+# Python-backed skill dies on `No such file or directory` (#191).
+#
+# `$HOME` rather than `~` on purpose, and single-quoted so it reaches the built
+# markdown unexpanded: commands write the placeholder inside double quotes
+# (`--directory "SKILL_ROOT"`), and a tilde does not expand there, so `~/...`
+# would hand uv a literal directory named `~`.
+HERMES_INSTALL_ROOT='$HOME/.hermes/skills/obsidian-second-brain'
+
 adapter_build() {
   local src="$1" dst="$2"
 
@@ -83,6 +97,12 @@ _hermes_emit_skills() {
       [[ -n "$trig_clean" ]] && desc="$desc Triggers: $trig_clean."
     fi
 
+    # This build writes its own frontmatter, so a source trigger-mode does not
+    # travel unless it is encoded here (#181).
+    local trigmode
+    trigmode="$(parse_frontmatter "$f" trigger-mode)"
+    desc="$(with_trigger_policy "$desc" "$trigmode")"
+
     mkdir -p "$dst/$category/$name"
     out="$dst/$category/$name/SKILL.md"
     {
@@ -109,7 +129,7 @@ _hermes_emit_skills() {
     } > "$out"
 
     rewrite_tool_neutral "$out"
-    rewrite_skill_root "$out" "."
+    rewrite_skill_root "$out" "$HERMES_INSTALL_ROOT"
     rewrite_platform_paths "$out" ""
   done
 }
@@ -144,13 +164,20 @@ Phase 1 - Close the day:
 - Move any completed kanban tasks to Done.
 
 Phase 2 - Reconcile:
-- Scan \`wiki/entities/\` for outdated roles, companies, or descriptions that conflict with newer daily notes.
-- Scan \`wiki/concepts/\` for claims contradicted by recently ingested sources.
-- Auto-resolve clear winners. Flag ambiguous ones in \`wiki/decisions/\`.
+- First resolve the entities, concepts, and decisions folders per \`references/folder-map.md\` (at the install root,
+  \`$HERMES_INSTALL_ROOT/references/folder-map.md\`): the vault's \`_CLAUDE.md\` Folder Map wins, else wiki-style
+  \`wiki/entities/\` + \`wiki/concepts/\` + \`wiki/decisions/\`, else Obsidian-style \`People/\` + \`Knowledge/\` (and \`Ideas/\`) + \`Knowledge/\`.
+  A resolved folder that does not exist is a skip, not an error. Never scan a hardcoded \`wiki/\` path on a vault with no \`wiki/\` folder -
+  unattended, that is three tool failures a night with nothing to show for them.
+- Scan the entities folder for outdated roles, companies, or descriptions that conflict with newer daily notes.
+- Scan the concepts folder for claims contradicted by recently ingested sources.
+- Flag EVERY contradiction as a \`type: conflict\` note with \`status: open\` in the decisions folder. Do NOT rewrite any existing page -
+  resolving a contradiction rewrites the outdated note, which is destructive and irreversible while the user sleeps. Leave that to an
+  interactive obsidian-reconcile run.
 
 Phase 3 - Synthesize:
 - Scan sources ingested today and yesterday. Find concepts that appear in 2+ unrelated sources.
-- If patterns found: create \`wiki/concepts/Synthesis - Title.md\` with evidence and interpretation.
+- If patterns found: create \`Synthesis - Title.md\` in the concepts folder resolved in Phase 2, with evidence and interpretation.
 
 Phase 4 - Heal:
 - Find notes created today with no incoming links. Add links from relevant existing pages.
@@ -158,7 +185,8 @@ Phase 4 - Heal:
 - Rebuild \`index.md\` to reflect today's changes.
 
 Phase 5 - Log:
-- Append to \`log.md\`: ## [YYYY-MM-DD] nightly | End of day + X reconciled, Y synthesized, Z orphans linked
+- Append an operation-log entry: if \`Logs/\` exists write \`**HH:MM** - nightly | End of day + X flagged, Y synthesized, Z orphans linked\`
+  to \`Logs/YYYY-MM-DD.md\`; otherwise append \`## [YYYY-MM-DD] nightly | ...\` to \`log.md\`.
 
 Do not ask questions. Do not fix anything destructive - only add, update, link. Save and stop."
 
@@ -172,8 +200,11 @@ Do not ask questions. Save and stop."
 
   _hermes_write_blueprint "$dst" obsidian-health-check "0 21 * * 0" "every Sunday at 9:00 PM" \
 "Run the vault health check and log a report (report only, never auto-fixes)." \
-"Read \`_CLAUDE.md\`. Run: \`uv run -m scripts.vault_health --path <vault> --json\`
-Parse the output. Write a health report to \`Knowledge/Vault Health YYYY-MM-DD.md\`
+"Read \`_CLAUDE.md\`. Run: \`uv run --directory $HERMES_INSTALL_ROOT scripts/vault_health.py --path <vault> --json\`
+(the \`--directory\` is load-bearing: a cron job is armed with \`--workdir <vault>\`, so the working directory is the vault and a bare
+\`uv run -m scripts.vault_health\` cannot see \`scripts/\` at all. Substitute the real install root if the tree lives elsewhere.)
+Parse the output. Write the health report to the concepts folder resolved per \`references/folder-map.md\`
+(wiki-style \`wiki/concepts/\`, Obsidian-style \`Knowledge/\`) as \`Vault Health YYYY-MM-DD.md\`,
 summarizing findings by severity (critical, warning, info).
 Do not fix anything autonomously - only report.
 Do not ask questions. Save and stop."
@@ -319,11 +350,20 @@ Then in Hermes:
   the task and let Hermes select a skill from its description.
 - Skills run in your Hermes session. The AI-first vault rule lives in
   `references/ai-first-rules.md` - it is non-negotiable for every note a skill
-  writes (`## For future Claude` preamble, rich frontmatter, `[[wikilinks]]`,
-  recency markers, sources verbatim, confidence levels).
-- Python helpers under `scripts/` run via `uv run -m scripts.research.<name>`
-  from the install directory (it ships a `pyproject.toml`, so modules and
-  dependencies both resolve there - e.g. `~/.hermes/skills/obsidian-second-brain/`).
+  writes (`## For future agent` preamble, rich frontmatter, `[[wikilinks]]`,
+  recency markers, sources verbatim, confidence levels). That path is relative
+  to the install root, which is load-bearing: start Hermes elsewhere and it does
+  not resolve. A skill that cannot read it must search upward for it, and say so
+  before writing if it still cannot - the requirements in parentheses are the
+  floor either way.
+- Python helpers under `scripts/` run via
+  `uv run --directory ~/.hermes/skills/obsidian-second-brain -m scripts.research.<name>`.
+  The install root ships a `pyproject.toml`, so modules and dependencies both
+  resolve there. Name it explicitly rather than relying on the working
+  directory: Hermes is pointed at your *vault* as the working directory (and a
+  cron job is armed with `--workdir <vault>`), so a bare `uv run -m scripts.X`
+  looks for `scripts/` inside the vault and fails with `No module named
+  'scripts'`.
 
 ## Scheduled agents (opt-in)
 

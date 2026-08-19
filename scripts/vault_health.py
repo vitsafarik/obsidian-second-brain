@@ -280,6 +280,11 @@ DATED_SERIES_FOLDERS = {"daily", "logs", "dev logs", "reviews",
 # ("api" prefixes "api keys"); long ones are not.
 _TRUNC_TITLE_MIN_LEN = 20
 
+# Minimum normalized-title length for the truncated-title pass (see
+# _truncated_title_groups). Short titles are prefixes of each other by accident
+# ("api" prefixes "api keys"); long ones are not.
+_TRUNC_TITLE_MIN_LEN = 20
+
 
 def _norm_title(stem: str) -> str:
     """Normalize a filename stem to a comparable title. Keeps digits and dates -
@@ -305,12 +310,12 @@ def _max_pairwise_similarity(notes: dict, files: list) -> float:
     Used as the content signal that separates real duplicates from notes that
     merely share a title."""
     # Compare prose, not skeleton: every AI-first note shares frontmatter keys
-    # and the "## For future Claude" preamble heading, and that shared
+    # and the "## For future agent" preamble heading, and that shared
     # boilerplate alone pushed two unrelated notes to 0.80 similarity
     # (stress-test fix 8/24). Strip what all notes share, compare what's unique.
     def _prose(rel: str) -> str:
         text = FRONTMATTER_RE.sub("", notes[rel]["content"], count=1)
-        text = text.replace("## For future Claude", "")
+        text = re.sub(r"## For future (?:agent|AI|Claude|Codex)", "", text)
         return re.sub(r"\s+", " ", text).strip()[:1000]
 
     bodies = [_prose(f) for f in files]

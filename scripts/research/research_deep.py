@@ -18,12 +18,12 @@ is required either way.
 
 import json
 import os
-import re
 import sys
 from datetime import datetime
 from pathlib import Path
 
 from .lib.config import VAULT_PATH
+from .lib.vault_terms import topic_terms
 
 MAX_BASELINE_NOTES = 8
 MAX_BASELINE_CHARS_PER_NOTE = 1500
@@ -38,7 +38,10 @@ def _vault_scan_dirs() -> list[str]:
 
 def vault_scan(topic: str) -> list[dict]:
     """Find vault notes whose path or content references the topic. Returns sorted hits."""
-    keywords = [w for w in re.split(r"\s+", topic.lower()) if len(w) > 2]
+    # Tokenize via the search tokenizer, never a private copy: the old
+    # whitespace split + len(w) > 2 here returned nothing for CJK topics and
+    # survived #159/#188/#192 because each fix landed elsewhere (issue #212).
+    keywords = topic_terms(topic)
     if not keywords:
         return []
     hits: list[dict] = []
@@ -294,10 +297,12 @@ def run_paid_deep(topic: str) -> int:
         extracted = web_reader.read(sources_collected)
         if extracted:
             blocks = "\n\n".join(
-                f"#### Full text: {url}\n\n{text}" for url, text in extracted.items()
+                f"#### Extracted text: {url}\n\n{text}" for url, text in extracted.items()
             )
             findings += (
-                "\n\n### Extracted source content (full-page text, use to verify and deepen the findings above)\n\n"
+                "\n\n### Extracted source content (bounded excerpt per page, use to verify "
+                "and deepen the findings above; a block marked TRUNCATED is the opening of a "
+                "longer page, so treat what is missing as unread, not as absent from the source)\n\n"
                 + blocks
             )
             print(f"[/research-deep] Extracted {len(extracted)} pages.", file=sys.stderr)
@@ -312,7 +317,20 @@ def run_paid_deep(topic: str) -> int:
     try:
         # Use sonar-reasoning-pro for synthesis (follows instructions, supports markdown structure).
         # sonar-deep-research has a hardcoded "10k-word academic narrative" that overrides our prompt.
-        synth = perplexity.call(synth_prompt, model="sonar-reasoning-pro", max_tokens=3500, command="research-deep")
+        #
+        # 16000, measured rather than guessed. For a reasoning model max_tokens is
+        # the whole allowance, and the reasoning it spends is not itemized in
+        # `completion_tokens`, so the visible answer gets what is left. On a Phase 4
+        # prompt of ~4k tokens (this one carries the findings plus any Tavily
+        # full-text), a ladder on one fixed prompt gave: 3500/4000/4500/5000 ->
+        # completion_tokens 0, empty answer, finish_reason "stop"; 8000 -> answered
+        # but finish_reason "length" in 2 of 3 runs, arriving with 2 and 4 of the 6
+        # required sections; 16000 -> 3 of 3 complete, 6/6 sections, finish "stop".
+        # A bigger ceiling is close to free: billing is per token actually emitted
+        # (~2300 here, ~$0.032/run), so the cap costs nothing until it is used.
+        # Raise this, do not lower it - a prompt that grows past the allowance comes
+        # back empty rather than short.
+        synth = perplexity.call(synth_prompt, model="sonar-reasoning-pro", max_tokens=16000, command="research-deep")
     except Exception as e:
         # Same contract. Losing Phase 4 must not also discard the vault baseline
         # and every gap-fill result Phase 3 already paid for; write them through
@@ -331,7 +349,7 @@ def run_paid_deep(topic: str) -> int:
     # AI-first note save (Phase 5)
     now = datetime.now()
     preamble = (
-        f"For future Claude: This is a vault-first deep research delta on \"{topic}\" "
+        f"For future agent: This is a vault-first deep research delta on \"{topic}\" "
         f"performed on {now.strftime('%Y-%m-%d %H:%M')}. The vault was scanned first ({len(hits)} relevant notes), "
         f"gaps were identified, and {len(queries)} targeted queries filled them via Perplexity (web) + Grok (X). "
         f"This note focuses on WHAT'S NEW vs the vault's prior knowledge, contradictions to resolve, and recommended updates. "
@@ -349,7 +367,7 @@ def run_paid_deep(topic: str) -> int:
         "ai-first": True,
     }
     note_body = (
-        f"## For future Claude\n\n{preamble}\n\n"
+        f"## For future agent\n\n{preamble}\n\n"
         f"## Topic\n\n{topic}\n\n"
         f"## Vault Baseline Found\n\n"
         + ("\n".join(f"- [[{h['path']}]] (score={h['score']})" for h in hits) if hits else "(none)")

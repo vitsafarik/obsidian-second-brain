@@ -99,6 +99,8 @@ _codex_emit_skills() {
     name="$(basename "$f" .md)"
     desc="$(parse_frontmatter "$f" description)"
     triggers="$(parse_frontmatter "$f" triggers_en)"
+    local trigmode
+    trigmode="$(parse_frontmatter "$f" trigger-mode)"
     [[ -z "$desc" ]] && desc="Run the $name command of the obsidian-second-brain skill."
 
     # Fold triggers into the description for implicit selection.
@@ -107,6 +109,10 @@ _codex_emit_skills() {
       trig_clean="$(format_triggers "$triggers")"
       [[ -n "$trig_clean" ]] && desc="$desc Triggers: $trig_clean."
     fi
+
+    # This build writes its own frontmatter, so a source trigger-mode does not
+    # travel unless it is encoded here (#181).
+    desc="$(with_trigger_policy "$desc" "$trigmode")"
 
     mkdir -p "$dst/$name"
     out="$dst/$name/SKILL.md"
@@ -163,8 +169,33 @@ Then in your vault:
   skills, plus a `pyproject.toml` making `.codex/` a self-contained uv project.
   Run them via `(cd .codex && uv run -m scripts.research.<name> ...)`.
 
-Start Codex CLI from the vault root. Skills run in your current session - no
-`codex exec` wrapper, no per-command startup, and writes honor your session's
-approval/sandbox mode.
+## Where you start Codex is load-bearing
+
+Start Codex CLI **from the vault root**, or have the vault under git. This is a
+requirement, not a convenience:
+
+- Codex walks up to the **git root** looking for `.agents/skills`. A git-backed
+  vault therefore works from any subfolder - all skills still register.
+- A plain Obsidian vault is not a git repo. In that case, opening Codex in any
+  subfolder registers **zero** skills. There is no warning and no error;
+  `/skills` is simply empty and the session behaves like stock Codex.
+- The `.codex/references/` paths the skills cite are relative to this root too.
+  Start elsewhere and the AI-first spec is a dead path.
+
+If you keep your vault outside git and want to work from subfolders, run
+`git init` in the vault root once. Reported by @Palo-Alto-AI-Research-Lab on
+codex-cli 0.144.4 (issue #171).
+
+## Write-time validation hook (not included)
+
+This build ships no `hooks/` directory. The write-time AI-first validator
+(`validate-ai-first.sh`) is wired only in the Claude Code build. If your host
+exposes a post-write hook, wire it yourself from the source repo:
+`hooks/validate-ai-first.hook.yaml` is the platform-neutral spec and
+`hooks/validate-ai-first.sh` the implementation. Without it, the AI-first rule
+is enforced by the skill instructions alone.
+
+Skills run in your current session - no `codex exec` wrapper, no per-command
+startup, and writes honor your session's approval/sandbox mode.
 EOF
 }

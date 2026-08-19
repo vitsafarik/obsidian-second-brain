@@ -37,7 +37,7 @@ retrieve one note in isolation and reason over it correctly.
    around it. State the what, the why, and the when inside the note. Never rely
    on a backlink to carry the meaning.
 
-2. **A `## For future Claude` preamble.** Two or three plain sentences directly
+2. **A `## For future agent` preamble.** Two or three plain sentences directly
    after the frontmatter: what is in the note, why it was saved, and any caveat
    about staleness, confidence, or scope. This is read first to decide
    relevance, so it must stand alone. Keep the header string exactly as written;

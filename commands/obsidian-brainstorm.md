@@ -4,7 +4,7 @@ category: thinking
 trigger-mode: explicit
 triggers_en: ["brainstorm this", "brainstorm with me", "think this through with me", "help me design this", "interview me about this idea"]
 triggers_cs: ["probermeto", "pojdme to promyslet", "brainstorm se mnou", "pomoz mi to navrhnout", "vyzpovidej me k tomu napadu"]
-triggers_es: ["haz una lluvia de ideas conmigo", "piensa esto conmigo", "ayúdame a diseñar esto", "entrevístame sobre esta idea"]
+triggers_es: ["haz una lluvia de ideas conmigo", "piensa esto conmigo", "ayúdame a diseñar esto", "entrevístame sobre esta idea", "dale vueltas a esto conmigo"]
 triggers_pt: ["faça um brainstorm comigo", "pense nisso comigo", "me ajude a desenhar isto", "me entreviste sobre esta ideia"]
 triggers_zh: ["陪我头脑风暴", "和我一起把这个想清楚", "通过提问帮我完善这个想法", "帮我设计这个方案"]
 ---
@@ -53,7 +53,7 @@ Keep interviewing until at least 5 of 6 are checked. If the user says "just writ
 
 Save to the ideas/concepts folder (resolved per `references/folder-map.md`), named `YYYY-MM-DD - Brainstorm - <topic>.md`, `type: brainstorm`, thinking-tool schema in `references/ai-first-rules.md`. Structure:
 
-- `## For future Claude` preamble: what was being designed, what got decided, what is still open
+- `## For future agent` preamble: what was being designed, what got decided, what is still open
 - `## Problem` - the one-sentence framing (verbatim from the interview)
 - `## Constraints and anti-goals`
 - `## Approaches considered` - the named alternatives with the trade-off table, the chosen one marked
@@ -62,10 +62,10 @@ Save to the ideas/concepts folder (resolved per `references/folder-map.md`), nam
 
 Then propagate: link the note from today's daily note, from the related project note (if one exists), and offer `/obsidian-graduate` if the brainstorm produced something project-shaped, or `/obsidian-decide` if a decision deserves an ADR.
 
-Do not pad the note with the interview transcript - future-Claude needs the conclusions and the reasoning, not the dialogue.
+Do not pad the note with the interview transcript - future agent needs the conclusions and the reasoning, not the dialogue.
 
 ---
 
-**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future Claude` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. The vault is for future-Claude retrieval - not human reading.
+**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future agent` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. If that path does not resolve from your working directory, search upward for it; if you still cannot read it, say so before writing rather than producing a note that silently skips the rule. The vault is for future agent retrieval - not human reading.
 
 **Anti-fabrication:** Search exhaustively before claiming any note, person, or file is absent - false absence is the most common failure mode - and never invent facts, entities, or dates (mark unknowns as `TBD`). See the anti-fabrication and search-completeness hard rules in `references/ai-first-rules.md`.

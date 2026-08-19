@@ -14,6 +14,24 @@ Each upstream release is absorbed by re-applying the Czech deltas onto a fresh
 `upstream/main` (never a rebase of old commits). The previous branch state is
 kept as a fallback tag before each re-apply.
 
+- **2026-08-19: merged `upstream/main`** (26 unreleased commits since the 0.14
+  re-apply; no new upstream release - v0.14.0 is still the newest tag). This one
+  was absorbed as a real `git merge`, NOT a re-apply: the delta was small enough
+  that a merge keeps history linear for the other machine (`git pull --ff-only`
+  instead of `reset --hard` after a force-push). Fallback tag:
+  `cs-adaptace-pre-upstream-20260819`. The next RELEASE still gets the re-apply
+  treatment - that protocol is unchanged. 25 conflicts, all in known delta
+  surfaces: 19 commands (upstream rewrote `triggers_es`; kept both, ours + theirs),
+  `validate-ai-first.sh`, the MCP server trio, `test_plugin_manifest.py` (taken
+  from upstream wholesale) and `test_smoke.py`. Verified after the merge:
+  `uv run pytest` 608/608, `uvx ruff check` clean, `bash scripts/build.sh` all 7
+  platforms with the Czech block present in the dispatcher builds (pi, gemini-cli,
+  opencode - claude-code has no monolithic dispatcher), triggers_cs 46/46,
+  vault_health on the real vault 634 notes / 32 issues. What upstream brought that
+  matters here: wikilink extraction now strips code blocks (#207, the source of
+  part of the nightly "no match" noise), the research toolkit's silent-empty
+  defaults are fixed, JSON transcripts read Whisper-style `segments[].text` (#193),
+  and the `mcp<2` pin landed upstream (see section 4).
 - **2026-07-31: re-applied onto 0.14 "The Harvest"** (93 commits ahead of our
   0.12 base, absorbing 0.13 "The Open Standard" and 0.14). Fallback tag:
   `cs-adaptace-pre-0.14`. Verified after re-apply: triggers_cs 46/46 (the two new
@@ -60,7 +78,19 @@ kept as a fallback tag before each re-apply.
 ## 2. Validator (hooks/validate-ai-first.sh)
 
 - Accepts the Czech preamble `## Pro budoucí Claude` / `## Pro budouci Claude`
-  alongside the English `## For future Claude` (prefix match on `Pro budouc`).
+  alongside the English headings (prefix match on `Pro budouc`). **0.14+/2026-08-19:**
+  upstream renamed the vocabulary to `## For future agent` and now anchors the
+  whole heading (`^## For future (agent|AI|Claude|Codex)$`); the Czech arm rides
+  alongside that exact set as a prefix match, so both pass.
+- **Severity split (added 2026-08-19):** upstream escalated every finding to
+  `decision: "block"`, which makes the PostToolUse host hand the warning back to
+  the agent as a correction task. Structural defects and secrets keep that
+  verdict. The banned-character check does NOT: **537 of 632 notes in this vault
+  already carry one** (mostly U+2026 in imported prose), so blocking on it would
+  bounce every edit of an old note and push the agent to rewrite lines it never
+  touched. When typography is the ONLY finding, the hook advises instead
+  (`systemMessage` + `additionalContext`, no `decision`). Revisit if the corpus
+  is ever swept.
 - Banned-character set drops em/en-dash and curly double quotes (correct Czech
   typography), keeps single curly quotes, math symbols, ellipsis, nbsp.
   Upstream's `tests/test_no_banned_chars_in_instructions.py` is unaffected: it
@@ -129,15 +159,31 @@ kept as a fallback tag before each re-apply.
 - The `get_skill` path-traversal guard is NO LONGER a delta: upstream merged it
   as #84 (a156522) with identical code and added its own regression test. The
   old local branch `fix/get-skill-path-traversal` is redundant.
+- **Preamble heading (re-expressed 2026-08-19):** upstream centralized the
+  heading into `_PREAMBLE_HEADING` / `_PREAMBLE_RE` and made `_prepare_note_content`
+  the single place that emits it (collapsing duplicate legacy headings). The fork
+  keeps the Czech label by pointing `_PREAMBLE_HEADING` at `Pro budoucí Claude`
+  and widening `_PREAMBLE_RE` with a Czech arm - upstream's English labels stay
+  ACCEPTED (legacy notes, notes written by another agent), only the Czech one is
+  EMITTED. Do not re-add a hand-built preamble in `save_note`: the body is now
+  `f"{note_body}"` and building it twice is exactly the duplicate-heading bug
+  upstream fixed. Pinned by `tests/test_smoke.py` and by one localized assertion
+  in upstream's new `tests/test_mcp_codex_parity.py` (save emits the Czech label;
+  the collapse-to-one behaviour it tests is untouched).
+- **The `mcp<2` pin is NO LONGER a delta (2026-08-19).** PR #185 merged upstream
+  and arrived with this merge: the manifest, `scripts/setup.sh`, `SKILL.md`,
+  `README.md` and the integration docs all carry `--with 'mcp<2'`, and
+  `tests/test_plugin_manifest.py` sweeps every tracked file to keep it that way.
+  Reinstalling via `setup.sh` no longer resurrects the unpinned launch.
 - 4 smoke-test localizations in `tests/test_smoke.py` (vstupy/ paths + Czech
   preamble assertions); upstream's English-preamble FIXTURES elsewhere stay
   untouched (validate_note dual-accepts, vault_health is not localized).
 - **Wired into Claude Code** (user scope, `~/.claude.json` mcpServers, stdio
   `uv run --with 'mcp<2' python .../obsidian-mcp-server/server.py`) since ~2026-07.
-  Not wired into any other client. The `mcp<2` pin is a **temporary local delta**
-  (2026-07-31): `mcp` 2.0.0 dropped `mcp.server.fastmcp`, so the unpinned launch
-  crashed the server on both machines. Sent upstream as PR #185 (issue #183) -
-  drop this delta once it merges and lands here in the next re-apply.
+  Not wired into any other client. The `mcp<2` pin was a temporary local delta
+  (2026-07-31, after `mcp` 2.0.0 dropped `mcp.server.fastmcp` and crashed the
+  server on both machines); it was sent upstream as PR #185 (issue #183) and
+  merged back here on 2026-08-19, so it is now upstream behaviour, not a delta.
 
 ## 5. Health/stats folder-spec localization (scripts/)
 

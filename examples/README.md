@@ -24,7 +24,7 @@ A real vault would also have `Companies/`, `Decisions/`, `Knowledge/`, `Research
 Each file demonstrates the 7 rules from the AI-first spec:
 
 1. **Self-contained context** — every note explains itself without relying on backlinks alone
-2. **`## For future Claude` preamble** — the 2-3 sentence summary right after the frontmatter
+2. **`## For future agent` preamble** — the 2-3 sentence summary right after the frontmatter
 3. **Rich frontmatter** — `type`, `date`, `tags`, `ai-first: true`, plus type-specific fields
 4. **Recency markers per claim** — external facts carry `(as of YYYY-MM, source.com)`
 5. **Sources verbatim** — URLs preserved inline, not paraphrased

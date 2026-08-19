@@ -22,6 +22,6 @@ A board only means something if "This Week" means this week. Run this whenever a
 
 ---
 
-**AI-first rule:** Board files follow the kanban exception in `references/ai-first-rules.md`: `kanban-plugin` frontmatter, NO `## For future Claude` heading (the plugin would render it as a phantom column). Every NON-board note this command creates or updates (task notes, project notes) MUST follow the full rule - preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`), `[[wikilinks]]`, sources verbatim.
+**AI-first rule:** Board files follow the kanban exception in `references/ai-first-rules.md`: `kanban-plugin` frontmatter, NO `## For future agent` heading (the plugin would render it as a phantom column). Every NON-board note this command creates or updates (task notes, project notes) MUST follow the full rule - preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`), `[[wikilinks]]`, sources verbatim. If that path does not resolve from your working directory, search upward for it; if you still cannot read it, say so before writing rather than producing a note that silently skips the rule.
 
 **Anti-fabrication:** Search exhaustively before claiming any note, person, or file is absent - false absence is the most common failure mode - and never invent facts, entities, or dates (mark unknowns as `TBD`). See the anti-fabrication and search-completeness hard rules in `references/ai-first-rules.md`.

@@ -54,7 +54,7 @@ def test_each_canonical_rule_survives_into_the_short_form():
     """Matched on the distinctive noun of each rule, not on wording."""
     subjects = {
         1: ("self-contained",),
-        2: ("For future Claude",),
+        2: ("For future agent",),
         3: ("frontmatter",),
         4: ("as of", "recency"),
         5: ("source",),

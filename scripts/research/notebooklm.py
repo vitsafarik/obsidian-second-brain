@@ -31,6 +31,8 @@ from google import genai
 from google.genai import types
 
 from .lib.config import NOTEBOOKLM_MODEL, VAULT_PATH, get_required
+from .lib.gemini import GEMINI_DEFAULT_MODEL, MODEL_LADDER
+from .lib.vault_terms import topic_terms
 
 MAX_BUNDLE_NOTES = 12
 NOTEBOOKLM_DIR = VAULT_PATH / "Research" / "NotebookLM"
@@ -51,7 +53,10 @@ def _vault_scan_dirs() -> list[str]:
 
 
 def vault_scan(topic: str) -> list[dict]:
-    keywords = [w for w in re.split(r"\s+", topic.lower()) if len(w) > 2]
+    # Tokenize via the search tokenizer, never a private copy: the old
+    # whitespace split + len(w) > 2 here returned nothing for CJK topics and
+    # survived #159/#188/#192 because each fix landed elsewhere (issue #212).
+    keywords = topic_terms(topic)
     if not keywords:
         return []
     hits: list[dict] = []
@@ -124,7 +129,7 @@ model: {model}
 
 # {topic}: NotebookLM synthesis ({date})
 
-## For future Claude
+## For future agent
 
 Source-grounded synthesis on "{topic}" via Gemini File Search (model: {model}). Vault baseline: {baseline_count} notes from the vault scan, uploaded as grounded sources. Output cites source titles where the model included them. This is the parallel research track to `/research-deep` (Perplexity-based, open-web); this one is grounded in the user's own sources, not the open web. Confidence: stated (grounded retrieval is reliable on the sources you give it; less reliable on synthesis breadth).
 
@@ -209,19 +214,44 @@ def run(topic: str) -> int:
             upload_and_wait(client, store.name, h)
 
         print("Asking Gemini, grounded against the uploaded sources...", file=sys.stderr)
-        resp = client.models.generate_content(
-            model=NOTEBOOKLM_MODEL,
-            contents=PROMPT_TEMPLATE.format(topic=topic),
-            config=types.GenerateContentConfig(
-                tools=[
-                    types.Tool(
-                        file_search=types.FileSearch(
-                            file_search_store_names=[store.name],
-                        ),
-                    )
-                ],
-            ),
-        )
+        # Same per-key-cohort 404 problem as lib/gemini.py (issue #211): the
+        # default walks the shared ladder; an explicit NOTEBOOKLM_MODEL is
+        # never laddered and fails loud with the fix named.
+        candidates = ([NOTEBOOKLM_MODEL] if NOTEBOOKLM_MODEL != GEMINI_DEFAULT_MODEL
+                      else list(MODEL_LADDER))
+        resp = None
+        used_model = candidates[0]
+        last_404: Exception | None = None
+        for m in candidates:
+            try:
+                resp = client.models.generate_content(
+                    model=m,
+                    contents=PROMPT_TEMPLATE.format(topic=topic),
+                    config=types.GenerateContentConfig(
+                        tools=[
+                            types.Tool(
+                                file_search=types.FileSearch(
+                                    file_search_store_names=[store.name],
+                                ),
+                            )
+                        ],
+                    ),
+                )
+                used_model = m
+                break
+            except Exception as e:
+                if "NOT_FOUND" in str(e) or "404" in str(e):
+                    last_404 = e
+                    print(f"NOTE: model {m} not available to this key (404); "
+                          f"trying the next fallback...", file=sys.stderr)
+                    continue
+                raise
+        if resp is None:
+            print(f"ERROR: no Gemini model available to this key "
+                  f"(tried: {', '.join(candidates)}). Set NOTEBOOKLM_MODEL in "
+                  f"~/.config/obsidian-second-brain/.env to a model your key can "
+                  f"generate with. Last error: {last_404}", file=sys.stderr)
+            return 1
         response_text = resp.text or ""
         if not response_text.strip():
             print("ERROR: Gemini returned an empty response.", file=sys.stderr)
@@ -239,7 +269,7 @@ def run(topic: str) -> int:
         date=today,
         topic=topic,
         slug=slug,
-        model=NOTEBOOKLM_MODEL,
+        model=used_model,
         baseline_count=len(hits),
         baseline_links="\n".join(f"- [[{h['path']}]]" for h in hits),
         response=response_text,
@@ -252,7 +282,7 @@ def run(topic: str) -> int:
         "slug": slug,
         "saved_note": str(note_path.relative_to(VAULT_PATH)),
         "vault_baseline_notes": [h["path"] for h in hits],
-        "model": NOTEBOOKLM_MODEL,
+        "model": used_model,
     }
 
     print(f"\n=== SAVED ===\n{note_path}\n")

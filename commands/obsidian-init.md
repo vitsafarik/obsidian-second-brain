@@ -3,7 +3,7 @@ description: Scan your vault and generate a _CLAUDE.md operating manual, index.m
 category: meta
 triggers_en: ["init vault", "bootstrap vault", "setup vault", "scan vault"]
 triggers_cs: ["inicializuj vault", "zaloz vault", "nastav vault", "naskenuj vault"]
-triggers_es: ["inicializa el vault", "arranca el vault", "configura el vault", "escanea el vault"]
+triggers_es: ["inicializa el vault", "arranca el vault", "configura el vault", "escanea el vault", "inicia el vault", "deja listo el vault"]
 triggers_pt: ["inicialize o vault", "bootstrap do vault", "configure o vault", "escaneie o vault"]
 triggers_zh: ["初始化知识库", "为这个知识库生成初始配置", "扫描并配置我的知识库", "生成知识库操作手册"]
 ---
@@ -50,6 +50,6 @@ If a monolithic `log.md` already exists with `## YYYY-MM-DD` sections: run `uv r
 
 ---
 
-**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future Claude` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. The vault is for future-Claude retrieval - not human reading.
+**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future agent` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. If that path does not resolve from your working directory, search upward for it; if you still cannot read it, say so before writing rather than producing a note that silently skips the rule. The vault is for future agent retrieval - not human reading.
 
 **Anti-fabrication:** Search exhaustively before claiming any note, person, or file is absent - false absence is the most common failure mode - and never invent facts, entities, or dates (mark unknowns as `TBD`). See the anti-fabrication and search-completeness hard rules in `references/ai-first-rules.md`.

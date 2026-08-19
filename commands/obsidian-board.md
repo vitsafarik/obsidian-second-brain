@@ -3,7 +3,7 @@ description: Show or update a kanban board - flags overdue items, updates from c
 category: vault
 triggers_en: ["show board", "kanban", "what is on my board", "update board"]
 triggers_cs: ["nastenka", "ukaz kanban", "tabule ukolu"]
-triggers_es: ["muestra el tablero", "kanban", "qué hay en mi tablero", "actualiza el tablero"]
+triggers_es: ["muestra el tablero", "kanban", "qué hay en mi tablero", "actualiza el tablero", "cómo va mi tablero"]
 triggers_pt: ["mostre o board", "kanban", "o que está no meu board", "atualize o board"]
 triggers_zh: ["打开我的看板", "看看看板上有什么", "更新看板", "查看任务看板"]
 ---
@@ -22,6 +22,6 @@ The optional argument is a board name. Handle typos and partial matches.
 
 ---
 
-**AI-first rule:** Board files follow the kanban exception in `references/ai-first-rules.md`: `kanban-plugin` frontmatter, NO `## For future Claude` heading (the plugin would render it as a phantom column). Every NON-board note this command creates or updates (task notes, project notes) MUST follow the full rule - preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`), `[[wikilinks]]`, sources verbatim.
+**AI-first rule:** Board files follow the kanban exception in `references/ai-first-rules.md`: `kanban-plugin` frontmatter, NO `## For future agent` heading (the plugin would render it as a phantom column). Every NON-board note this command creates or updates (task notes, project notes) MUST follow the full rule - preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`), `[[wikilinks]]`, sources verbatim. If that path does not resolve from your working directory, search upward for it; if you still cannot read it, say so before writing rather than producing a note that silently skips the rule.
 
 **Anti-fabrication:** Search exhaustively before claiming any note, person, or file is absent - false absence is the most common failure mode - and never invent facts, entities, or dates (mark unknowns as `TBD`). See the anti-fabrication and search-completeness hard rules in `references/ai-first-rules.md`.

@@ -268,7 +268,7 @@ def ensure_daily(note, when):
     dow = when.strftime("%A")
     note.write_text(
         f"---\ntype: daily\ndate: {day}\nday-of-week: {dow}\ntags:\n  - daily\n"
-        f"ai-first: true\n---\n\n## For future Claude\n\n"
+        f"ai-first: true\n---\n\n## For future agent\n\n"
         f"Daily note for {day} ({dow}). Journal entries captured via the Telegram journal bot.\n",
         encoding="utf-8",
     )
@@ -405,7 +405,7 @@ def handle_photo(msg, chat_id, when):
 
 
 PDF_PROMPT = """This PDF was saved by the user to their AI-first Obsidian vault. Write a note \
-for future-Claude retrieval.
+for future agent retrieval.
 
 Output (plain ASCII, no emoji):
 TITLE: <short descriptive title, max ~10 words>
@@ -515,7 +515,7 @@ Context where it was mentioned:
 Reply with ONLY a JSON object:
 {{
  "type": "person | company | project | concept | stub",
- "body": "2-4 sentence note body for future-Claude: what or who {name} is, from the context plus what you reliably know. Mark anything uncertain as TBD. Do NOT invent specific facts (dates, numbers, titles, relationships) not supported by the context or common knowledge. Plain ASCII, no emoji."
+ "body": "2-4 sentence note body for future agent: what or who {name} is, from the context plus what you reliably know. Mark anything uncertain as TBD. Do NOT invent specific facts (dates, numbers, titles, relationships) not supported by the context or common knowledge. Plain ASCII, no emoji."
 }}"""
 
 NONEMBED_LINK = re.compile(r"(?<!\!)\[\[([^\]]+)\]\]")
@@ -563,7 +563,7 @@ def create_stub(name, context, when):
     body = str(info.get("body") or "").strip() or f"Referenced in a capture on {today}. TBD."
     note.write_text(
         f"---\ntype: {ntype}\ndate: {today}\ntags: [{ntype}, telegram-capture]\nai-first: true\n---\n\n"
-        f"## For future Claude\n\n{body}\n",
+        f"## For future agent\n\n{body}\n",
         encoding="utf-8")
     all_stems().add(name.lower())
 
@@ -596,7 +596,7 @@ def queue_catchup(kind, summary, when, where=""):
     if not CATCHUP.exists():
         CATCHUP.write_text(
             "---\ntype: catchup-queue\nai-first: true\n---\n\n"
-            "## For future Claude\n\nUnprocessed captures from the Telegram journal bot, "
+            "## For future agent\n\nUnprocessed captures from the Telegram journal bot, "
             "newest at the bottom. Each line is `- [ ] date time | kind | summary | -> where`. "
             "Run /obsidian-catchup to review the unchecked items together, then they get "
             "checked off. The bot only queues here - it never processes.\n\n## Queue\n\n",

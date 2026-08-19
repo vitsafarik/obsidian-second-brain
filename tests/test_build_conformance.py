@@ -40,6 +40,14 @@ SKILL_ROOT_EXEMPT = {"claude-code"}
 CITED_REFERENCE = re.compile(r"[^\s`(\"']*references/[a-z0-9-]+\.md")
 
 
+def _tree_relative(cited: str) -> str:
+    """Map a citation onto a path inside the built tree. Kept in step with
+    scripts/conformance_report.py, which the CI report runs from."""
+    if cited.startswith(("/", "~", "$")):
+        return "references/" + cited.split("references/", 1)[1]
+    return cited.removeprefix("./")
+
+
 @pytest.fixture(scope="module")
 def built() -> Path:
     """Build every platform once, the way a release actually does it."""
@@ -122,7 +130,11 @@ def test_every_cited_reference_path_resolves(built: Path, platform: str) -> None
 
             # removeprefix, not lstrip: lstrip strips characters, so a genuine
             # ".pi/..." path would lose its leading dot and never resolve.
-            rel = cited.removeprefix("./")
+            # Shared with scripts/conformance_report.py::_tree_relative - a build
+            # whose agent runs outside the install root has to name that root
+            # absolutely (#191), and no absolute path resolves against dist/, so
+            # only the tail from `references/` onward is checkable there.
+            rel = _tree_relative(cited)
 
             candidates = [
                 tree / rel,        # rewritten, install-relative path

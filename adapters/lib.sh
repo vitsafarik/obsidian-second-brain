@@ -306,7 +306,10 @@ rewrite_tool_neutral() {
 # real paths shipped unrewritten. It is kept below as a cheap safety net.
 
 # Rewrite SKILL_ROOT to the directory holding scripts/ and references/.
-# Pass "." for builds that ship those at the tree root (hermes).
+# Pass a path that resolves from the working directory the platform actually
+# runs in, not from the built tree. `.` only works where the agent's CWD is the
+# install root; hermes points the agent at the vault instead, so it passes the
+# concrete install path (#191).
 rewrite_skill_root() {
   local file="$1" skill_root="$2"
   [[ -f "$file" ]] || return 0
@@ -383,14 +386,46 @@ strip_quotes() {
 # exist in their own build, and nobody noticed because each was maintained
 # separately. CLAUDE.md says this rule must change in lockstep across platforms;
 # one definition is what makes that true rather than aspirational.
+# emit_ai_first_rule <refs_path> [step_number]
+# The single home for the AI-first rule summary. step_number defaults to 3
+# with_trigger_policy <description> <trigger-mode>
+# Fold the proactive-vs-explicit selection policy into a generated description.
+#
+# Adapters that emit native skills write their own frontmatter, so a source
+# `trigger-mode: proactive` does not travel unless the adapter puts it there.
+# It was encoded in agent-skills only, which left codex-cli, hermes and pi
+# shipping purely reactive skills - 7 of the 8 commands that declare the field
+# are proactive, so those builds lost the signal on all 7 (#181, reported by
+# @konsone). The adapters that copy the command body verbatim (claude-code,
+# gemini-cli, opencode) keep the frontmatter and do not need this.
+#
+# One definition rather than four, for the same reason emit_ai_first_rule is:
+# copies drift silently, and the drift is invisible per platform.
+with_trigger_policy() {
+  local desc="$1" trigmode="$2"
+  if [[ "$trigmode" == "proactive" ]]; then
+    printf '%s' "$desc Use proactively: trigger this whenever the conversation produces something worth capturing, without waiting to be asked."
+  else
+    printf '%s' "$desc Use only when the user explicitly asks for it."
+  fi
+}
+
+# because that is its slot in the "How to operate" block; agent-skills passes 4
+# for its global-rule snippet. Parameterised rather than copied, so
+# test_dispatcher_prose can keep asserting one definition exists.
 emit_ai_first_rule() {
-  local refs_path="$1"
+  local refs_path="$1" step="${2:-3}"
   cat <<EOF
-3. Treat the AI-first vault rule (\`${refs_path}\`) as
-   non-negotiable for every note you write: \`## For future Claude\` preamble,
-   rich frontmatter (\`type\`, \`date\`, \`tags\`, \`ai-first: true\`),
-   \`[[wikilinks]]\` for every person/project/concept, recency markers per
-   external claim, sources verbatim, confidence levels where applicable.
+${step}. Treat the AI-first vault rule as non-negotiable for every note you write:
+   \`## For future agent\` preamble, rich frontmatter (\`type\`, \`date\`,
+   \`tags\`, \`ai-first: true\`), \`[[wikilinks]]\` for every
+   person/project/concept, recency markers per external claim, sources
+   verbatim, confidence levels where applicable. The full spec is
+   \`${refs_path}\`, a path relative to the install root. If it does not
+   resolve from your working directory, search upward for it. If you still
+   cannot read it, say so before writing - the seven requirements above still
+   apply, and a note written while the spec was unreachable must never look
+   the same as one written with it in hand.
 EOF
 }
 

@@ -24,7 +24,7 @@ Curator tools (guarded mutation + graph + health, per Issue #79):
 | Tool | What it does |
 |---|---|
 | `obsidian_update_note(path, append, heading, set_fields)` | Guarded edit of an existing note: append a section and/or merge scalar frontmatter; preserves the rest verbatim, never creates, never touches `tags:` blocks, stamps `updated` |
-| `obsidian_validate_note(path)` | Check a note for AI-first compliance (frontmatter keys, `## For future Claude` preamble) and unresolved `[[wikilinks]]` |
+| `obsidian_validate_note(path)` | Check a note for AI-first compliance (frontmatter keys, `## For future agent` preamble) and unresolved `[[wikilinks]]` |
 | `obsidian_backlinks(target)` | List every note that links to `target` via `[[wikilink]]` |
 | `obsidian_vault_health()` | Bounded structural summary: orphans, wanted notes (linked but unwritten - a wishlist, not errors), notes missing frontmatter (counts + capped samples) |
 
@@ -37,7 +37,7 @@ Skill tools (the higher-level behaviors, per Issue #60 - "use the skills, not ju
 
 The skill tools expose the command playbooks (e.g. `obsidian-ingest`, `idea-discovery`, `obsidian-find`) so the connecting agent runs the real skill behavior with its own model - ingest, for instance, is multi-step (it rewrites and links existing pages), so it runs as an agent-executed skill rather than a single function. Niche / agent-only / Claude-only commands (challenge, health, the scheduled agents, and the Google Calendar commands) are excluded from the exposed set. Override the commands source with `OBSIDIAN_COMMANDS_DIR` if the server is deployed away from the repo.
 
-Saved notes follow `references/ai-first-rules.md` (frontmatter, `## For future Claude` preamble, `source: mcp` marker) so connector-written notes are distinguishable from hand-authored ones.
+Saved notes follow `references/ai-first-rules.md` (frontmatter, `## For future agent` preamble, `source: mcp` marker) so connector-written notes are distinguishable from hand-authored ones.
 
 ## Run it
 

@@ -3,7 +3,7 @@ description: Red-team your current idea against your own vault history - finds c
 category: thinking
 triggers_en: ["challenge this", "grill me on this", "red team my idea", "stress test this"]
 triggers_cs: ["zpochybni", "oponuj napadu", "red-team"]
-triggers_es: ["cuestiona esta idea", "ponme a prueba con esto", "haz de abogado del diablo con mi idea", "pon esto a prueba"]
+triggers_es: ["cuestiona esta idea", "ponme a prueba con esto", "haz de abogado del diablo con mi idea", "pon esto a prueba", "dime por qué esto no funcionaría"]
 triggers_pt: ["desafie isto", "questione minha ideia", "faça um red team da minha ideia", "teste esta ideia"]
 triggers_zh: ["挑战一下这个想法", "帮我找这个方案的问题", "站在反方审视它", "给这个想法做压力测试", "别客气地质疑我"]
 ---
@@ -31,6 +31,6 @@ Do not be agreeable. The entire point is to pressure-test. Cite specific vault f
 
 ---
 
-**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future Claude` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. The vault is for future-Claude retrieval - not human reading.
+**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future agent` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. If that path does not resolve from your working directory, search upward for it; if you still cannot read it, say so before writing rather than producing a note that silently skips the rule. The vault is for future agent retrieval - not human reading.
 
 **Anti-fabrication:** Search exhaustively before claiming any note, person, or file is absent - false absence is the most common failure mode - and never invent facts, entities, or dates (mark unknowns as `TBD`). See the anti-fabrication and search-completeness hard rules in `references/ai-first-rules.md`.

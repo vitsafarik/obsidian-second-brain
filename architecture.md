@@ -16,7 +16,7 @@ obsidian-second-brain is a cross-CLI **skill** (not a plugin, not a hosted servi
 - An opt-in background agent plus optional user-scheduled agents.
 - MIT licensed.
 
-The AI-first vault rule ties it all together: every note a command writes is designed for future-Claude retrieval, not human reading. The canonical spec is `references/ai-first-rules.md`, referenced from `_CLAUDE.md` Section 0 and from every command that writes to the vault.
+The AI-first vault rule ties it all together: every note a command writes is designed for future agent retrieval, not human reading. The canonical spec is `references/ai-first-rules.md`, referenced from `_CLAUDE.md` Section 0 and from every command that writes to the vault.
 
 ---
 
@@ -117,9 +117,9 @@ Bootstrap, audit, export, visualize, document, and extend the system itself.
 
 ## The AI-first rule (non-negotiable)
 
-Every command that writes to a vault must follow `references/ai-first-rules.md`. Notes are built for future-Claude retrieval:
+Every command that writes to a vault must follow `references/ai-first-rules.md`. Notes are built for future agent retrieval:
 
-- A `## For future Claude` preamble at the top of every note.
+- A `## For future agent` preamble at the top of every note.
 - Rich frontmatter: `type`, `date`, `tags`, `ai-first: true`, plus type-specific fields.
 - `[[wikilinks]]` for every person, project, idea, decision, and concept referenced.
 - External claims carry recency markers like `(as of 2026-04, source.com)` with the source URL inline.
@@ -148,7 +148,7 @@ Python dependencies (`pyproject.toml`, managed via `uv`): `openai`, `requests`, 
 
 Hooks enforce the rules mechanically instead of relying on the model to remember them. They are Claude Code specific - the other CLIs have no hook system, so there the AI-first rule rests on the in-body command instructions.
 
-- **`validate-ai-first.sh`** (`PostToolUse` on Write/Edit). Warns when a vault markdown write is missing AI-first frontmatter or the `## For future Claude` preamble. Check 5 is the substitution-character gate (em-dash, curly quotes, Unicode math).
+- **`validate-ai-first.sh`** (`PostToolUse` on Write/Edit). Warns when a vault markdown write is missing AI-first frontmatter or the `## For future agent` preamble. Check 5 is the substitution-character gate (em-dash, curly quotes, Unicode math).
 - **`load_vault_context.py`** (`SessionStart`). Injects `_CLAUDE.md` / `index.md` / recent log once per session so commands do not re-read the operating manual every turn.
 - **`obsidian-bg-agent.sh`** (`PostCompact`, opt-in). On context compaction it spawns a headless `claude -p` in the vault to propagate the session summary into notes. Ships inert; arms only with `OBSIDIAN_BG_AGENT_ENABLED=1`. It only adds or updates - never deletes, archives, or merges.
 

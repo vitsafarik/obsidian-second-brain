@@ -15,7 +15,7 @@ What it does, per note:
     (only if the note actually has a source/url), `tags`, `timestamp` (ISO-8601)
   - `[[wikilinks]]` -> relative-path markdown links (OKF's cross-link convention);
     unresolved links degrade to plain text, embeds (`![[x]]`) keep a relative path
-  - the full AI-first body (incl. the `## For future Claude` preamble) is preserved -
+  - the full AI-first body (incl. the `## For future agent` preamble) is preserved -
     OKF is minimally opinionated, so the richer content rides along
 Plus a generated `index.md` (progressive disclosure) and a copied `log.md` if present.
 

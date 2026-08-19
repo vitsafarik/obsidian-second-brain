@@ -94,7 +94,7 @@ def _vault(tmp_path) -> Path:
     for name, link in (("a", "b"), ("b", "a")):
         (v / f"{name}.md").write_text(
             f"---\ntype: note\ndate: 2026-07-26\ntags:\n  - t\nai-first: true\n---\n\n"
-            f"## For future Claude\nlinks to [[{link}]]\n", encoding="utf-8")
+            f"## For future agent\nlinks to [[{link}]]\n", encoding="utf-8")
     return v
 
 

@@ -67,6 +67,12 @@ _pi_emit_prompts() {
     [[ -z "$desc" ]] && desc="Run the /$name command of the obsidian-second-brain skill."
     desc="$(strip_quotes "$desc")"
 
+    # This build writes its own frontmatter, so a source trigger-mode does not
+    # travel unless it is encoded here (#181).
+    local trigmode
+    trigmode="$(parse_frontmatter "$f" trigger-mode)"
+    desc="$(with_trigger_policy "$desc" "$trigmode")"
+
     out="$dst/$name.md"
     {
       echo "---"

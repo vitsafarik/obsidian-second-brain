@@ -193,7 +193,7 @@ def build(total_notes: int, seed: int) -> dict[str, str]:
         rel = f"{FOLDER[t['kind']]}/{t['title']}.md"
         files[rel] = (
             _fm(t["kind"], "2026-02-01", [t["kind"], t["term"]])
-            + f"## For future Claude\nCanonical note for {t['title']}.\n\n"
+            + f"## For future agent\nCanonical note for {t['title']}.\n\n"
             f"## What it is\n{t['body']}\n"
         )
 
@@ -204,7 +204,7 @@ def build(total_notes: int, seed: int) -> dict[str, str]:
         for i, day in enumerate(_dates(rng, 2)):
             files[f"wiki/daily/{day}-{t['term']}.md"] = (
                 _fm("daily", day, ["daily"])
-                + f"## For future Claude\nDaily log for {day}.\n\n"
+                + f"## For future agent\nDaily log for {day}.\n\n"
                 + "\n".join(
                     f"- Spent the morning on {t['term']}; {t['term']} still blocked on review. "
                     f"Follow up on {t['term']} tomorrow. See [[{t['title']}]]."
@@ -214,13 +214,13 @@ def build(total_notes: int, seed: int) -> dict[str, str]:
         m_day = _dates(rng, 1)[0]
         files[f"wiki/meetings/{m_day} - {t['title']} sync.md"] = (
             _fm("meeting", m_day, ["meeting"])
-            + f"## For future Claude\nSync about {t['term']}.\n\n"
+            + f"## For future agent\nSync about {t['term']}.\n\n"
             + f"Discussed {t['term']} at length. Actions on {t['term']} assigned. "
               f"Next {t['term']} checkpoint set. Ref [[{t['title']}]].\n" * 3
         )
         files[f"Research/{t['term']}-landscape-review.md"] = (
             _fm("source", "2026-03-15", ["research"])
-            + f"## For future Claude\nExternal review of {t['term']}.\n\n"
+            + f"## For future agent\nExternal review of {t['term']}.\n\n"
             + f"A survey of how others approach {t['term']}. {t['term']} appears in most "
               f"comparable systems. Our {t['term']} differs in scope. See [[{t['title']}]].\n" * 4
         )
@@ -233,7 +233,7 @@ def build(total_notes: int, seed: int) -> dict[str, str]:
         rel = f"wiki/notes/{adj}-{noun}-{i:03d}.md"
         files[rel] = (
             _fm("note", day, ["note", noun])
-            + f"## For future Claude\nNotes on the {adj} {noun}.\n\n"
+            + f"## For future agent\nNotes on the {adj} {noun}.\n\n"
             + " ".join(rng.choice(FILLER_NOUNS) for _ in range(60)) + "\n"
         )
         i += 1

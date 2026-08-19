@@ -39,7 +39,7 @@ ai-first: true
 
 # Vault Operations - {date}
 
-> For future Claude: timestamped audit log of vault writes on this day. Append-only.
+> For future agent: timestamped audit log of vault writes on this day. Append-only.
 
 """
 
@@ -51,7 +51,7 @@ ai-first: true
 
 # Vault Operation Log
 
-> For future Claude: vault operation history is split per-day under `Logs/YYYY-MM-DD.md`.
+> For future agent: vault operation history is split per-day under `Logs/YYYY-MM-DD.md`.
 > Append today's entries to `Logs/{today}.md` (create the file if missing using the template below).
 > Do not write entries into this file.
 
@@ -74,7 +74,7 @@ ai-first: true
 
 # Vault Operations - YYYY-MM-DD
 
-> For future Claude: timestamped audit log of vault writes on this day. Append-only.
+> For future agent: timestamped audit log of vault writes on this day. Append-only.
 
 **HH:MM** - [Operation type]
 - [What changed]
@@ -146,7 +146,7 @@ def main() -> int:
         return 1
 
     newest = max(sections.keys())
-    # The pointer tells future Claude where TODAY's entries go, so it must carry
+    # The pointer tells future agent where TODAY's entries go, so it must carry
     # the current date, not the last date found in the legacy log. Using `newest`
     # here silently directed every future write into a stale day's file.
     today = _date.today().isoformat()

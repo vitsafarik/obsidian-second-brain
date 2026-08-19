@@ -3,14 +3,14 @@ description: Scan a codebase and write a maintained set of architecture notes in
 category: meta
 triggers_en: ["document this codebase", "architect this project", "map this code into my vault", "generate architecture notes", "refresh architecture docs"]
 triggers_cs: ["zmapuj architekturu", "popis strukturu kodu", "zdokumentuj codebase", "architektura projektu"]
-triggers_es: ["documenta este código", "analiza la arquitectura de este proyecto", "lleva este código a mi vault", "genera notas de arquitectura", "actualiza la documentación de arquitectura"]
+triggers_es: ["documenta este código", "analiza la arquitectura de este proyecto", "lleva este código a mi vault", "genera notas de arquitectura", "actualiza la documentación de arquitectura", "pon la arquitectura en el vault"]
 triggers_pt: ["documente este código", "arquitete este projeto", "mapeie este código no vault", "gere notas de arquitetura", "atualize a documentação de arquitetura"]
 triggers_zh: ["给这个代码库写架构文档", "分析这个项目的架构", "把代码结构整理进知识库", "生成架构笔记", "更新架构文档"]
 ---
 
 Use the obsidian-second-brain skill. Execute `/obsidian-architect [path-to-codebase]`:
 
-Turns a software project into a maintained set of architecture notes in the vault, so future-you (and future-Claude) can answer "how does this project work and why" without re-reading the code. Re-running refreshes the notes in place.
+Turns a software project into a maintained set of architecture notes in the vault, so future-you (and future agent) can answer "how does this project work and why" without re-reading the code. Re-running refreshes the notes in place.
 
 This is a hybrid command: a deterministic Python scan produces the facts, then YOU synthesize the prose, rationale, and diagram. Never invent structure the scan did not find (see the anti-fabrication rule).
 
@@ -48,6 +48,6 @@ This is a hybrid command: a deterministic Python scan produces the facts, then Y
 
 ---
 
-**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future Claude` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. The vault is for future-Claude retrieval - not human reading.
+**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future agent` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. If that path does not resolve from your working directory, search upward for it; if you still cannot read it, say so before writing rather than producing a note that silently skips the rule. The vault is for future agent retrieval - not human reading.
 
 **Anti-fabrication:** Describe only what the scan and the code actually show - never invent a module, a dependency, a data flow, or a decision that is not grounded in the manifest or the source. If the scan is thin (small project, no manifest), say so and keep the notes short rather than padding. Mark inferred rationale and personas as `confidence: speculation`. See the anti-fabrication and search-completeness hard rules in `references/ai-first-rules.md`.

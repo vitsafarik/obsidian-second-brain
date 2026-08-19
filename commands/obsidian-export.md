@@ -59,7 +59,7 @@ The optional argument is the format: `json` (default), `markdown`, or `okf`.
    ```bash
    uv run --directory "SKILL_ROOT" scripts/export_okf.py --path "<vault path from _CLAUDE.md>"
    ```
-   It writes an OKF v0.1 bundle to `_export/okf/`: every note becomes an OKF concept doc (frontmatter `type` [required] / `title` / `description` / `resource` [only when the note has a real source URL] / `tags` / ISO-8601 `timestamp`; `[[wikilinks]]` converted to relative-path markdown links), plus a generated `index.md` (progressive disclosure) and a copied `log.md`. The vault's richer AI-first body (incl. the `## For future Claude` preamble) is preserved - OKF is minimally opinionated, so the extra content rides along. This makes the vault "OKF v0.1 compatible" without changing how it works natively.
+   It writes an OKF v0.1 bundle to `_export/okf/`: every note becomes an OKF concept doc (frontmatter `type` [required] / `title` / `description` / `resource` [only when the note has a real source URL] / `tags` / ISO-8601 `timestamp`; `[[wikilinks]]` converted to relative-path markdown links), plus a generated `index.md` (progressive disclosure) and a copied `log.md`. The vault's richer AI-first body (incl. the `## For future agent` preamble) is preserved - OKF is minimally opinionated, so the extra content rides along. This makes the vault "OKF v0.1 compatible" without changing how it works natively.
 
 5. Append to the operation log: if `Logs/` exists write `**HH:MM** - export | Vault snapshot exported (format, N notes)` to `Logs/YYYY-MM-DD.md`; otherwise append `## [YYYY-MM-DD] export | Vault snapshot exported (format, N notes)` to `log.md`
 
@@ -67,6 +67,6 @@ This file is the bridge between your vault and any other AI tool, automation, or
 
 ---
 
-**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future Claude` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. The vault is for future-Claude retrieval - not human reading.
+**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future agent` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. If that path does not resolve from your working directory, search upward for it; if you still cannot read it, say so before writing rather than producing a note that silently skips the rule. The vault is for future agent retrieval - not human reading.
 
 **Anti-fabrication:** Search exhaustively before claiming any note, person, or file is absent - false absence is the most common failure mode - and never invent facts, entities, or dates (mark unknowns as `TBD`). See the anti-fabrication and search-completeness hard rules in `references/ai-first-rules.md`.

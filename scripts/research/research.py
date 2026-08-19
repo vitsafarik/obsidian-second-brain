@@ -156,7 +156,7 @@ def run_paid(topic: str) -> int:
 
     now = datetime.now()
     preamble = (
-        f"For future Claude: This note is a Perplexity Sonar deep dossier on \"{topic}\" "
+        f"For future agent: This note is a Perplexity Sonar deep dossier on \"{topic}\" "
         f"performed on {now.strftime('%Y-%m-%d %H:%M')}. It captures key facts with recency markers, "
         f"timeline, key players, contrarian views, and open questions. "
         f"Every claim was sourced at the time of research - verify recency markers before relying on individual facts."
@@ -184,7 +184,7 @@ def run_paid(topic: str) -> int:
     if sources_list:
         sources_md = "\n## Sources\n\n" + "\n".join(f"- {s}" for s in sources_list) + "\n"
     note_body = (
-        f"## For future Claude\n\n{preamble}\n\n"
+        f"## For future agent\n\n{preamble}\n\n"
         f"## Topic\n\n{topic}\n\n"
         f"## Dossier\n\n{body}\n"
         f"{sources_md}"

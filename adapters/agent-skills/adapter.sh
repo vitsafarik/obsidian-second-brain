@@ -75,11 +75,7 @@ _ask_emit_skills() {
     fi
 
     # Encode the selection policy - the one lever these harnesses read.
-    if [[ "$trigmode" == "proactive" ]]; then
-      desc="$desc Use proactively: trigger this whenever the conversation produces something worth capturing, without waiting to be asked."
-    else
-      desc="$desc Use only when the user explicitly asks for it."
-    fi
+    desc="$(with_trigger_policy "$desc" "$trigmode")"
 
     mkdir -p "$dst/$name"
     out="$dst/$name/SKILL.md"
@@ -167,7 +163,12 @@ not a task skill - do not run it on its own.
 
 - \`references/\` - shared specs. \`references/ai-first-rules.md\` is the canonical,
   non-negotiable vault-write spec; \`vault-schema.md\`, \`folder-map.md\`, and
-  \`freshness-policy.md\` back the other skills.
+  \`freshness-policy.md\` back the other skills. These paths are relative to the
+  install root, which is load-bearing: if one does not resolve from your working
+  directory, search upward for it, and say so before writing if you still cannot
+  read it. Every command skill also embeds the AI-first spec inline, so the rule
+  survives an unreachable path - but an unreachable path must never pass in
+  silence.
 - \`scripts/\` - Python helpers for the research toolkit and vault health. The
   command skills invoke them as
   \`uv run --directory ${ASK_CORE_PATH} -m scripts.research.<name> ...\`
@@ -203,6 +204,25 @@ The tree contains \`skills/<name>/SKILL.md\` (${ASK_CMD_COUNT} command skills) p
 \`skills/${ASK_CORE}/\` engine skill (references, scripts, pyproject). There is
 deliberately **no SKILL.md at the tree root** - a root SKILL.md shadows the
 nested skills during discovery.
+
+## Where you start the harness is load-bearing
+
+Start your harness **from the vault root**, or have the vault under git. This is
+a requirement, not a convenience:
+
+- Codex CLI walks up to the **git root** looking for \`.agents/skills\`. A
+  git-backed vault therefore works from any subfolder.
+- A plain Obsidian vault is not a git repo. In that case, opening the harness in
+  any subfolder registers **zero** skills - no warning, no error, the skill list
+  is simply empty.
+- The \`.agents/skills/${ASK_CORE}/references/\` paths the skills cite are
+  relative to this root too. Start elsewhere and the AI-first spec is a dead
+  path, which is why every skill now says so out loud instead of silently
+  skipping the rule.
+
+If you keep your vault outside git and want to work from subfolders, run
+\`git init\` in the vault root once. Reported by @Palo-Alto-AI-Research-Lab on
+codex-cli 0.144.4 (issue #171).
 
 ## Option A - skills.sh (recommended)
 
@@ -292,11 +312,7 @@ Agent Skills. When it is:
 2. Read \`_CLAUDE.md\` at the vault root first, if present, for vault conventions.
 3. Prefer the installed \`.agents/skills/\` skills for vault actions (save, capture,
    log, decide, research, health, ...).
-4. Treat \`.agents/skills/${ASK_CORE}/references/ai-first-rules.md\` as
-   non-negotiable for every note you write: \`## For future Claude\` preamble, rich
-   frontmatter (\`type\`, \`date\`, \`tags\`, \`ai-first: true\`), \`[[wikilinks]]\` for
-   every person/project/concept, recency markers per external claim, sources
-   verbatim, confidence levels where applicable.
+$(emit_ai_first_rule "${ASK_CORE_PATH}/references/ai-first-rules.md" 4)
 \`\`\`
 EOF
 }

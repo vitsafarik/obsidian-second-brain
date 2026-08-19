@@ -9,7 +9,7 @@ and a _CLAUDE.md so Claude can operate the vault from day one.
 AI-first rule: every template emitted by this script must produce
 notes that pass `hooks/validate-ai-first.sh`. That means the template
 frontmatter must include `date:`, `type:`, `tags:`, and `ai-first: true`,
-and the body must include a `## For future Claude` preamble. See
+and the body must include a `## For future agent` preamble. See
 `references/ai-first-rules.md` for the full spec. When adding a new
 template here, follow the existing shape.
 
@@ -266,19 +266,25 @@ def folder_map_table(folders: list) -> str:
         elif key == "Finances":
             sub = f.split("/", 1)[1] if "/" in f else ""
             desc = f"Finance notes ({sub})" if sub else "Finance notes"
+        elif key == "Side Biz":
+            sub = f.split("/", 1)[1] if "/" in f else ""
+            desc = f"Side business ({sub})" if sub else "Side business"
         else:
             desc = descriptions.get(key, "-")
         rows.append(f"| `{f}/` | {desc} |")
     return "\n".join(rows)
 
 
-def claude_md_personal(name: str, preset_key: str, preset: dict, jobs: list, vault_path: Path) -> str:
+def claude_md_personal(name: str, preset_key: str, preset: dict, jobs: list, vault_path: Path,
+                       folders: list | None = None) -> str:
     primary_job = jobs[0] if jobs else "Work"
-    folder_table = folder_map_table(preset["folders"])
+    # The map is the agent's ground truth for what is where, so build it from the
+    # folders bootstrap actually creates (which may extend the preset, e.g. the
+    # Side Biz tree) - and list no file it does not write: the default preset
+    # used to add a `Jobs/<job>.md` row per job while creating no such file, so
+    # every fresh vault's map opened with a phantom note.
+    folder_table = folder_map_table(folders if folders is not None else preset["folders"])
     if preset_key == "default":
-        jobs_table = "\n".join(f"| `Jobs/{j}.md` | Employment / contract role |" for j in jobs)
-        if jobs_table:
-            folder_table = folder_table + "\n" + jobs_table
         key_files = (
             "- **Dashboard:** `Home.md`\n"
             f"- **Work Board:** `Boards/{primary_job}.md`\n"
@@ -380,8 +386,11 @@ Done item:
 """
 
 
-def claude_md_assistant(operator: str, subject: str, preset_key: str, preset: dict, vault_path: Path) -> str:
-    folder_table = folder_map_table(preset["folders"])
+def claude_md_assistant(operator: str, subject: str, preset_key: str, preset: dict, vault_path: Path,
+                        folders: list | None = None) -> str:
+    # Same rule as claude_md_personal: the map documents the folders bootstrap
+    # actually creates, not just the preset's base list.
+    folder_table = folder_map_table(folders if folders is not None else preset["folders"])
     board_lines = [f"- **{b.name} Board:** `Boards/{b.name}.md`" for b in preset["boards"]]
     key_files = "- **Dashboard:** `Home.md`\n" + ("\n".join(board_lines) if board_lines else "")
 
@@ -557,7 +566,7 @@ energy:
 
 # <% tp.date.now("YYYY-MM-DD") %> - <% tp.date.now("dddd") %>
 
-## For future Claude
+## For future agent
 
 Daily note for this date. Captures what was worked on, who was met, decisions made, energy, and the day's intention. Pull this when reconstructing what happened on a given day.
 
@@ -625,7 +634,7 @@ job:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Project note. Captures overview, architecture, key decisions, and related tasks. Pull this when reasoning about the project's direction, prior decisions, or current scope.
 
@@ -677,7 +686,7 @@ location:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Person note. Captures role, company, relationship context, what they care about, and how to help each other. Pull this before any interaction with this person or when reasoning about who knows what.
 
@@ -720,7 +729,7 @@ due:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Task note. Captures requirements, implementation notes, and what was delivered. Pull this when reconstructing why a piece of work was done or what was actually shipped vs requested.
 
@@ -747,7 +756,7 @@ job:
 
 # Dev Log - <% tp.date.now("YYYY-MM-DD") %>
 
-## For future Claude
+## For future agent
 
 Engineering log for this date. Captures what was worked on, problems solved, decisions made, and next steps. Pull this when reconstructing the chain of technical decisions on a project.
 
@@ -782,7 +791,7 @@ target_date: {YEAR}-12-31
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Goal note. Captures why this goal matters, success criteria, milestones, and progress. Pull this when assessing whether work being proposed actually moves toward a stated goal.
 
@@ -811,7 +820,7 @@ context:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Mention note. Captures a moment when someone recognized work publicly (Slack, email, meeting, LinkedIn). Pull these to surface social proof, track recurring advocates, or reconstruct who said what about a project.
 
@@ -925,7 +934,7 @@ duration:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Meeting note. Captures attendees, agenda, decisions, action items, and free-form notes. Pull this when reconstructing what was decided in a meeting or what commitments were made.
 
@@ -951,7 +960,7 @@ context:
 
 # ADR - <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Decision record (ADR). Captures the context, options considered, the decision, and its consequences. Pull this when a similar decision comes up again, or when reconstructing why the system is shaped the way it is.
 
@@ -976,7 +985,7 @@ progress: 0
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 OKR note. Captures the objective, key results, and progress over the quarter. Pull this when reasoning about whether current work is aligned to a stated objective.
 
@@ -1003,7 +1012,7 @@ project:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Architecture note. Captures the problem, constraints, design, tradeoffs, and open questions. Pull this when extending a system, debating a refactor, or onboarding to a component.
 
@@ -1029,7 +1038,7 @@ status: investigating
 
 # Bug - <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Bug investigation note. Captures the symptom, repro steps, investigation trail, root cause, and fix. Pull this when a similar symptom comes up again or when reasoning about why a fix was shaped a certain way.
 
@@ -1059,7 +1068,7 @@ hook:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Content post note. Captures the hook, body, CTA, and platform variants for a piece of public-facing content. Pull this to reconstruct what was published, where it went, and which hooks worked.
 
@@ -1082,7 +1091,7 @@ segment:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Audience segment note. Captures who they are, what they want, what they read, and the hooks that work for them. Pull this before drafting content aimed at this segment.
 
@@ -1111,7 +1120,7 @@ url:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Source note (book, paper, podcast, video, article). Captures citation, abstract or summary, and raw notes. `source_kind` distinguishes the form (book/paper/podcast/etc.). Pull this when reasoning about what's been read on a topic.
 
@@ -1132,7 +1141,7 @@ source:
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Literature note. Distillation of one source's key claims, methodology, critique, and connections to other ideas. Pull this when reasoning about what one specific source argues, separate from the broader landscape.
 
@@ -1159,7 +1168,7 @@ confidence: medium
 
 # <% tp.file.title %>
 
-## For future Claude
+## For future agent
 
 Hypothesis note. Captures a testable statement, predictions, evidence for and against, and a verdict. Pull this when reasoning about open questions or when new evidence arrives that could update an open hypothesis.
 
@@ -1213,9 +1222,11 @@ def bootstrap(vault: Path, name: str, preset_key: str, mode: str, subject: str,
 
     # ── _CLAUDE.md ────────────────────────────────────────────────────────────
     if mode == "assistant":
-        write(vault / "_CLAUDE.md", claude_md_assistant(name, subject, preset_key, preset, vault))
+        write(vault / "_CLAUDE.md",
+              claude_md_assistant(name, subject, preset_key, preset, vault, folders=folders))
     else:
-        write(vault / "_CLAUDE.md", claude_md_personal(name, preset_key, preset, jobs, vault))
+        write(vault / "_CLAUDE.md",
+              claude_md_personal(name, preset_key, preset, jobs, vault, folders=folders))
 
     # ── Home ──────────────────────────────────────────────────────────────────
     write(vault / "Home.md", render_home(name, preset_key, preset, jobs, mode, subject))
@@ -1261,7 +1272,17 @@ def bootstrap(vault: Path, name: str, preset_key: str, mode: str, subject: str,
     print("   • Calendar  - daily note navigation")
     print("\n🤖 Claude MCP config:")
     print(f'   "obsidian-vault": {{"command": "npx", "args": ["-y", "mcp-obsidian", "{vault}"]}}')
-    print("\n🧠 _CLAUDE.md is ready - Claude will read it automatically on every session.")
+    # Auto-read is wiring, not a property of the file: it happens only when
+    # the load_vault_context SessionStart hook is registered (install.sh / the
+    # Claude Code plugin) AND OBSIDIAN_VAULT_PATH is set (scripts/setup.sh)
+    # AND the session starts inside the vault. Promising it unconditionally
+    # strands bare-clone users in sessions that never load the manual, with
+    # nothing telling them why.
+    print("\n🧠 _CLAUDE.md is ready. Make sure your agent reads it before working in")
+    print("   this vault - a configured integration may do that automatically (the")
+    print("   SessionStart hook from install.sh or the Claude Code plugin, plus")
+    print("   OBSIDIAN_VAULT_PATH from scripts/setup.sh, for sessions started")
+    print("   inside the vault).")
     # The one moment the reader has definitely just got value: their vault
     # exists and they can see what was created. Once per machine, never in CI.
     try:

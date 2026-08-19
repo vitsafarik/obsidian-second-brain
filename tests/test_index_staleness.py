@@ -49,7 +49,7 @@ def vault(tmp_path):
     v.mkdir()
     for i in range(20):
         (v / f"note{i}.md").write_text(
-            f"---\ntype: note\n---\n\n## For future Claude\nbody {i}\n", encoding="utf-8"
+            f"---\ntype: note\n---\n\n## For future agent\nbody {i}\n", encoding="utf-8"
         )
     return v
 

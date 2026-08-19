@@ -66,12 +66,12 @@ def test_self_link_does_not_prevent_orphanhood(tmp_path):
 
 
 def test_same_title_different_content_is_not_a_duplicate_warning(tmp_path):
-    """Shared frontmatter + '## For future Claude' boilerplate used to push two
+    """Shared frontmatter + '## For future agent' boilerplate used to push two
     unrelated notes past the 0.6 similarity threshold."""
     vault = tmp_path / "vault"
     (vault / "Concepts").mkdir(parents=True)
     boiler = ("---\ntype: concept\ndate: 2026-07-11\ntags: [concept]\nai-first: true\n---\n\n"
-              "## For future Claude\n\n")
+              "## For future agent\n\n")
     (vault / "Concepts" / "Google Ads.md").write_text(
         boiler + "Concept A is entirely about the Google Ads auction platform and bidding.\n",
         encoding="utf-8",
@@ -90,7 +90,7 @@ def test_true_duplicates_still_warn(tmp_path):
     vault = tmp_path / "vault"
     (vault / "A").mkdir(parents=True)
     (vault / "B").mkdir()
-    body = "---\ntype: concept\n---\n\n## For future Claude\n\nIdentical body text here.\n"
+    body = "---\ntype: concept\n---\n\n## For future agent\n\nIdentical body text here.\n"
     (vault / "A" / "Same Note.md").write_text(body, encoding="utf-8")
     (vault / "B" / "same-note.md").write_text(body, encoding="utf-8")
 

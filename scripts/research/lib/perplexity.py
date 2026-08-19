@@ -43,6 +43,23 @@ def call(prompt: str, *, model: str | None = None, deep: bool = False, max_token
                 if "<think>" in text:
                     text = text.split("<think>")[0]
                 text = text.strip()
+                # An empty completion is a failure, and it has to be raised rather
+                # than returned: every caller writes `result["text"]` straight into a
+                # vault note, so returning "" saves an empty note under a real title
+                # and never trips the fallback each call site already has. It happens
+                # for a mundane reason - a reasoning model spends max_tokens on
+                # reasoning first, so a budget it can exhaust leaves nothing visible
+                # and still reports finish_reason "stop". No retry: when the cause is
+                # the budget it is deterministic, and three more calls bill the input
+                # again to produce the same nothing.
+                if not text:
+                    raise RuntimeError(
+                        f"{model} returned an empty completion "
+                        f"(completion_tokens={(data.get('usage') or {}).get('completion_tokens')}, "
+                        f"finish_reason={data['choices'][0].get('finish_reason')}). "
+                        f"With max_tokens={max_tokens}, the most likely cause is that the "
+                        "allowance left no room for a visible answer - raise it."
+                    )
                 citations = data.get("citations") or data.get("search_results") or []
                 # Record the paid call in the shared usage ledger (fail-soft;
                 # log_call itself never raises). Token counts come from the

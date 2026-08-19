@@ -32,17 +32,17 @@ Copy this, fill in the bracketed values, and save as `_CLAUDE.md` in the vault r
 
 ## Section 0 - AI-First Vault Rule (read first, applies to every note)
 
-This vault is designed for **future-Claude** to read and reason over, not for human review. The owner rarely reads notes directly - they call Claude to retrieve, synthesize, and connect dots across years of accumulated knowledge.
+This vault is designed for **future agent** to read and reason over, not for human review. The owner rarely reads notes directly - they call Claude to retrieve, synthesize, and connect dots across years of accumulated knowledge.
 
 **Every note Claude writes to this vault must follow these rules:**
 
 1. **Self-contained context** - Each note must explain itself. Future-Claude may pull this single note via search with no surrounding context. Don't rely on backlinks alone for meaning.
-2. **"For future Claude" preamble** - Every note begins with a 2-3 sentence summary in plain English so Claude can decide relevance in 10 seconds before parsing the structured data.
+2. **"For future agent" preamble** - Every note begins with a 2-3 sentence summary in plain English so Claude can decide relevance in 10 seconds before parsing the structured data.
 3. **Rich, consistent frontmatter** - Filterable metadata (`type`, `date`, `topic`, `tags`, `related-people`, `related-projects`, `sources`, `confidence`). Different note types may have different schemas, but every note has machine-readable frontmatter.
-4. **Recency markers per claim** - When stating external facts, attach the date: "Mem0 raised $24M (as of 2026-04)" so future-Claude knows what to verify before trusting.
+4. **Recency markers per claim** - When stating external facts, attach the date: "Mem0 raised $24M (as of 2026-04)" so future agent knows what to verify before trusting.
 5. **Sources preserved verbatim** - Every external claim has its source URL inline so it can be re-verified or refreshed.
 6. **Cross-links are mandatory** - Every person, project, idea, decision, or concept referenced uses `[[wikilinks]]` so the graph is traversable.
-7. **Confidence levels** - Where applicable, mark claims as `stated | high | medium | speculation` so future-Claude knows what to trust vs verify.
+7. **Confidence levels** - Where applicable, mark claims as `stated | high | medium | speculation` so future agent knows what to trust vs verify.
 
 This rule applies to all `/obsidian-*` and `/research*` commands, all scheduled agents, and any direct vault writes.
 

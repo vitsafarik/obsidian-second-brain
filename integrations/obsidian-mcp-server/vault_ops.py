@@ -4,7 +4,7 @@ Pure stdlib, no MCP dependency, so the logic is unit-testable on its own. The
 MCP wiring in `server.py` is a thin layer over these functions.
 
 Every write follows the AI-first rule (references/ai-first-rules.md): frontmatter
-with type/date/tags/ai-first, a `## For future Claude` preamble, and a
+with type/date/tags/ai-first, a `## For future agent` preamble, and a
 `source: mcp` marker so notes added through the connector are distinguishable.
 """
 
@@ -281,6 +281,23 @@ _MAX_FILES_SCANNED = int(os.environ.get("OBSIDIAN_SEARCH_MAX_FILES") or "10000")
 _MAX_FILE_BYTES = 200_000
 _SNIPPET_CHARS = 320
 _READ_CAP = 20_000
+
+# Platform-neutral preamble name. Legacy notes remain valid: a vault is durable
+# memory, so changing the preferred label must not make years of Claude-authored
+# notes fail validation when Codex, Gemini, Hermes, or another agent reads them.
+# cs-adaptace: this vault is Czech, so notes are WRITTEN with the Czech heading
+# '## Pro budoucí Claude' (vault _CLAUDE.md rule). Upstream's platform-neutral
+# English labels stay ACCEPTED - the regex below is the compatibility surface for
+# legacy notes and for anything another agent wrote - but only the Czech label is
+# emitted, which is what tests/test_smoke.py pins.
+_PREAMBLE_HEADING = "Pro budoucí Claude"
+_PREAMBLE_RE = re.compile(
+    r"(?mi)^##[ \t]+(?:For future (?:agent|AI|Claude|Codex)|Pro budouc\S*[ \t]+\S+)[ \t]*$"
+)
+_VALIDATION_EXEMPT_ROOT_FILES = {
+    "_CLAUDE.md", "AGENTS.md", "Home.md", "index.md", "log.md",
+    "catchup.md", "INSTALL.md",
+}
 
 
 # Documented config home (architecture.md, .env.example, CONTRIBUTING.md). The
@@ -683,19 +700,91 @@ def search(query: str, *, limit: int = 6, semantic: Optional[bool] = None) -> Li
     return _freshness_rerank(scored[:limit], vault, current_intent)
 
 
-def read_note(rel: str) -> Dict[str, Any]:
-    """Read a note by vault-relative path. Guards against escaping the vault."""
+def read_note(
+    rel: str,
+    *,
+    offset: int = 0,
+    limit: int = _READ_CAP,
+) -> Dict[str, Any]:
+    """Read a paginated note by vault-relative path.
+
+    The old connector silently sliced every note at 20k characters while the
+    MCP tool promised "full content". Large project dossiers therefore hid the
+    newest sections from non-filesystem clients. Keep a bounded default, but
+    return explicit pagination metadata so callers can read to EOF.
+    """
     vault = resolve_vault()
     rel = (rel or "").strip()
     if not rel:
         return {"error": "path is required"}
+    if not isinstance(offset, int) or offset < 0:
+        return {"error": "offset must be a non-negative integer"}
+    if not isinstance(limit, int) or limit < 1 or limit > _READ_CAP:
+        return {"error": f"limit must be between 1 and {_READ_CAP}"}
     target = _resolve_in_vault(vault, rel)
     if target is None:
         return {"error": "path is outside the vault"}
     text = _read_safe(target)
     if text is None:
         return {"error": f"not found: {rel}"}
-    return {"path": rel, "content": text[:_READ_CAP]}
+    total = len(text)
+    content = text[offset:offset + limit]
+    end = offset + len(content)
+    return {
+        "path": rel,
+        "content": content,
+        "offset": offset,
+        "limit": limit,
+        "total_chars": total,
+        "truncated": end < total,
+        "next_offset": end if end < total else None,
+    }
+
+
+def _prepare_note_content(content: str, summary: Optional[str] = None) -> str:
+    """Return one non-empty, platform-neutral preamble plus the note body.
+
+    Agents naturally supplied the preamble required by the skill, while the
+    MCP server also generated one. That produced two or three empty headings in
+    real notes. Accept legacy/model-specific headings, collapse any repeated
+    leading copies, and emit the canonical generic label exactly once.
+    """
+    text = content.strip()
+    had_heading = False
+    while True:
+        match = _PREAMBLE_RE.match(text)
+        if not match:
+            break
+        had_heading = True
+        text = text[match.end():].lstrip("\r\n \t")
+
+    if summary is not None:
+        preamble = summary.strip()
+        rest = text
+    elif had_heading:
+        # The caller already structured the content: after removing duplicate
+        # labels, the first paragraph is the preamble and remains in place.
+        preamble = ""
+        rest = text
+    else:
+        # Promote the first prose paragraph into the preamble instead of copying
+        # it twice. A summary beginning with another H2 is not a summary.
+        blocks = re.split(r"\n[ \t]*\n", text, maxsplit=1)
+        preamble = blocks[0].strip()
+        rest = blocks[1].strip() if len(blocks) == 2 else ""
+
+    if had_heading and summary is None:
+        first = next((line.strip() for line in rest.splitlines() if line.strip()), "")
+        if not first or first.startswith("##"):
+            raise ValueError("the preamble is empty; add 2-3 summary sentences after the heading")
+        return f"## {_PREAMBLE_HEADING}\n{rest}\n"
+
+    if not preamble or preamble.startswith("##"):
+        raise ValueError("summary must be a non-empty prose paragraph")
+    body = f"## {_PREAMBLE_HEADING}\n{preamble}\n"
+    if rest:
+        body += f"\n{rest}\n"
+    return body
 
 
 def save_note(
@@ -704,6 +793,8 @@ def save_note(
     *,
     note_type: str = "note",
     tags: Optional[List[str]] = None,
+    path: Optional[str] = None,
+    summary: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Write an AI-first note to the vault's inbox folder (vstupy/, cs-adaptace)."""
     vault = resolve_vault()
@@ -714,12 +805,25 @@ def save_note(
     note_type = (note_type or "note").strip() or "note"
     tags = [str(t) for t in (tags or [note_type])]
 
-    inbox = vault / _NOTES_DIR
-    inbox.mkdir(parents=True, exist_ok=True)
     date = datetime.now().strftime("%Y-%m-%d")
-    path = inbox / f"{date} - {_slug(title)}.md"
+    if path:
+        requested = path.strip()
+        target = _resolve_in_vault(vault, requested)
+        if target is None:
+            return {"error": "path is outside the vault"}
+        if target.suffix.lower() != ".md":
+            return {"error": "path must end in .md"}
+        if {p.lower() for p in target.relative_to(vault).parts} & _PROTECTED_WRITE_DIRS:
+            return {"error": "path is in a protected directory"}
+    else:
+        inbox = vault / _NOTES_DIR
+        target = inbox / f"{date} - {_slug(title)}.md"
+
     tag_block = "\n".join(f"  - {t}" for t in tags)
-    preamble = content.split("\n", 1)[0][:280]
+    try:
+        note_body = _prepare_note_content(content, summary)
+    except ValueError as exc:
+        return {"error": str(exc)}
     body = (
         f"---\n"
         f"type: {note_type}\n"
@@ -728,22 +832,21 @@ def save_note(
         f"ai-first: true\n"
         f"source: mcp\n"
         f"---\n\n"
-        f"## Pro budoucí Claude\n"
-        f"{preamble}\n\n"
-        f"{content}\n"
+        f"{note_body}"
     )
     # B7: the filename is date + slug, so a second save with the same title on
     # the same day used to overwrite the first with no error and no backup.
     # Refuse and point at the tool that can actually edit an existing note.
-    if path.exists():
+    if target.exists():
         return {
             "error": (
-                f"a note already exists at {path.relative_to(vault).as_posix()}; "
+                f"a note already exists at {target.relative_to(vault).as_posix()}; "
                 "use obsidian_update_note to append to it, or save under a different title"
             )
         }
-    _write_atomic(path, body)
-    return {"saved": path.relative_to(vault).as_posix()}
+    target.parent.mkdir(parents=True, exist_ok=True)
+    _write_atomic(target, body)
+    return {"saved": target.relative_to(vault).as_posix()}
 
 
 def capture_idea(text: str, *, tags: Optional[List[str]] = None) -> Dict[str, Any]:
@@ -812,12 +915,82 @@ def update_note(
     return out
 
 
+def replace_text(rel: str, old_text: str, new_text: str) -> Dict[str, Any]:
+    """Replace one exact, unique block in an existing note atomically.
+
+    This is the MCP equivalent of a guarded patch. Requiring an exact unique
+    anchor prevents a stale Codex context from rewriting the wrong occurrence,
+    while still allowing repairs that append-only update_note cannot express.
+    """
+    vault = resolve_vault()
+    rel = (rel or "").strip()
+    if not rel:
+        return {"error": "path is required"}
+    if not old_text:
+        return {"error": "old_text must not be empty"}
+    target = _resolve_in_vault(vault, rel)
+    if target is None:
+        return {"error": "path is outside the vault"}
+    if {p.lower() for p in target.relative_to(vault).parts} & _PROTECTED_WRITE_DIRS:
+        return {"error": "path is in a protected directory"}
+    text = _read_safe(target)
+    if text is None:
+        return {"error": f"not found: {rel}"}
+    count = text.count(old_text)
+    if count != 1:
+        return {"error": f"old_text must match exactly once; found {count} matches"}
+    _write_atomic(target, text.replace(old_text, new_text, 1))
+    return {"updated": rel, "replacements": 1}
+
+
+def move_note(source: str, destination: str) -> Dict[str, Any]:
+    """Move one note inside the vault without overwriting anything."""
+    vault = resolve_vault()
+    src = _resolve_in_vault(vault, (source or "").strip())
+    dst = _resolve_in_vault(vault, (destination or "").strip())
+    if src is None or dst is None:
+        return {"error": "source and destination must stay inside the vault"}
+    if src.suffix.lower() != ".md" or dst.suffix.lower() != ".md":
+        return {"error": "source and destination must be markdown notes"}
+    for target in (src, dst):
+        if {p.lower() for p in target.relative_to(vault).parts} & _PROTECTED_WRITE_DIRS:
+            return {"error": "source or destination is in a protected directory"}
+    if not src.is_file():
+        return {"error": f"not found: {source}"}
+    if dst.exists():
+        return {"error": f"destination already exists: {destination}"}
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    # A preflight exists() check followed by os.replace() has a race: another
+    # writer can create the destination between them and be overwritten. A hard
+    # link is exclusive at the filesystem boundary; unlinking the source then
+    # completes the move. If unlinking fails, both copies remain (safe) rather
+    # than either note being lost.
+    try:
+        os.link(src, dst)
+    except FileExistsError:
+        return {"error": f"destination already exists: {destination}"}
+    except OSError as exc:
+        return {"error": f"could not create destination safely: {exc}"}
+    try:
+        src.unlink()
+    except OSError as exc:
+        return {
+            "error": f"destination was created but source could not be removed: {exc}",
+            "destination": destination,
+        }
+    return {
+        "moved": source,
+        "destination": destination,
+        "warning": "update any path-qualified wikilinks that still name the old path",
+    }
+
+
 def validate_note(rel: str) -> Dict[str, Any]:
     """Check a note against the AI-first rule and for unresolved wikilinks.
 
     Returns {path, ok, issues}. Issues cover missing frontmatter, missing
-    required keys (type/date/tags/ai-first), a missing `## For future Claude`
-    preamble, and `[[wikilinks]]` whose target note does not exist in the vault.
+    required keys (type/date/tags/ai-first), a missing or empty AI preamble,
+    and `[[wikilinks]]` whose target note does not exist in the vault.
     """
     vault = resolve_vault()
     rel = (rel or "").strip()
@@ -830,17 +1003,50 @@ def validate_note(rel: str) -> Dict[str, Any]:
     if text is None:
         return {"error": f"not found: {rel}"}
 
+    parts = PurePosixPath(rel).parts
+    first = parts[0].lower() if parts else ""
+    # These are documented exceptions in ai-first-rules.md, not knowledge
+    # notes. The old MCP validator contradicted the spec and reported every
+    # kanban board as broken because a preamble would become a phantom column.
+    if (
+        (len(parts) == 1 and target.name in _VALIDATION_EXEMPT_ROOT_FILES)
+        or first in {"raw", "templates", "boards", "logs"}
+        or "kanban-plugin: board" in text[:1_000]
+    ):
+        return {"path": rel, "ok": True, "issues": [], "exempt": True}
+
     issues: List[str] = []
-    fm_lines, _, had_fm = _split_frontmatter(text)
+    fm_lines, note_body, had_fm = _split_frontmatter(text)
     fmtext = "\n".join(fm_lines)
     if not had_fm:
         issues.append("missing frontmatter block")
     for key in ("type", "date", "tags", "ai-first"):
         if not re.search(rf"(?mi)^{key}:", fmtext):
             issues.append(f"missing frontmatter key: {key}")
-    # cs-adaptace: Czech vault notes use '## Pro budoucí Claude' (also accept ASCII 'budouci').
-    if "## For future Claude" not in text and "## Pro budou" not in text:
-        issues.append("missing '## Pro budoucí Claude' preamble")
+    preambles = list(_PREAMBLE_RE.finditer(note_body))
+    if not preambles:
+        issues.append(f"missing '## {_PREAMBLE_HEADING}' preamble")
+    else:
+        # Count only consecutive headings at the start of this note's preamble.
+        # NotebookLM bundles legitimately embed complete source notes, each with
+        # its own preamble later in the body; those are not duplicates of the
+        # outer note. The real corruption is repeated empty headings before the
+        # first summary sentence.
+        duplicate_count = 1
+        cursor = preambles[0].end()
+        while True:
+            remainder = note_body[cursor:].lstrip("\r\n \t")
+            repeated = _PREAMBLE_RE.match(remainder)
+            if not repeated:
+                break
+            duplicate_count += 1
+            cursor = len(note_body) - len(remainder) + repeated.end()
+        if duplicate_count > 1:
+            issues.append(f"duplicate future-agent preambles: found {duplicate_count}")
+        after = note_body[cursor:]
+        first_line = next((line.strip() for line in after.splitlines() if line.strip()), "")
+        if not first_line or first_line.startswith("##"):
+            issues.append("future-agent preamble is empty")
     index = _stem_index(vault)
     seen = set()
     for link in _wikilinks(text):
@@ -975,15 +1181,16 @@ def get_skill(name: str) -> Dict[str, Any]:
     meta, body = _parse_command(md)
     note = (
         "Run this skill using the MCP tools on this server for vault I/O: "
-        "obsidian_search (find/recall), obsidian_read_note (read), "
+        "obsidian_search (find/recall), obsidian_read_note (paginated read to EOF), "
         "obsidian_backlinks (graph), "
         "obsidian_update_note (append to, or set frontmatter on, an EXISTING note - "
         "use this whenever a step says update, rewrite, or integrate), "
-        "obsidian_save_note / obsidian_capture (create a NEW note), "
+        "obsidian_replace_text (exact guarded patch of an EXISTING note), "
+        "obsidian_move_note (graduate an Inbox note without overwriting), "
+        "obsidian_save_note / obsidian_capture (create a NEW note, with optional path), "
         "obsidian_validate_note (check a note before or after a write). "
-        "A step calling for a full rewrite of an existing note cannot be done with "
-        "these tools: report that to the user rather than approximating it with a "
-        "new note, which produces exactly the duplicates these playbooks forbid. "
+        "For broad rewrites, use multiple exact patches or report that the operation "
+        "needs direct filesystem access; never approximate it with a duplicate note. "
         "Follow the steps below."
     )
     return {
@@ -1119,11 +1326,24 @@ def _slug(text: str) -> str:
 
 
 _WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)")
+# Fenced blocks and inline code are quotation, not linkage: the bootstrapped
+# _CLAUDE.md demonstrates [[Related Project]] [[Person]] inside a fence, log
+# pointers ship their entry template in one, and doc notes demo [[wikilinks]]
+# in backticks. Counting those made them persistent false-positive wanted
+# notes in vault_health and false "unresolved wikilink" validation issues.
+# Same stripping the CLI applies (scripts/vault_health.py _strip_code, #82,
+# extended by #93); this server had the same gap. Deliberately the CLI's
+# exact scope: triple-backtick fences and single-backtick spans (tilde
+# fences and multi-backtick spans are a separate gap shared with the CLI).
+_CODE_FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
+_INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 
 
 def _wikilinks(text: str) -> List[str]:
-    """Return the raw target of each [[wikilink]] (before any | alias or # anchor)."""
-    return [m.group(1).strip() for m in _WIKILINK_RE.finditer(text)]
+    """Return the raw target of each [[wikilink]] (before any | alias or # anchor),
+    ignoring links quoted inside fenced code blocks or inline code spans."""
+    stripped = _INLINE_CODE_RE.sub("", _CODE_FENCE_RE.sub("", text))
+    return [m.group(1).strip() for m in _WIKILINK_RE.finditer(stripped)]
 
 
 def _nfc(s: str) -> str:
@@ -1142,13 +1362,49 @@ def _norm_link(link: str) -> str:
     return _nfc(link.split("/")[-1].strip()).lower()
 
 
+def _frontmatter_aliases(text: str) -> List[str]:
+    """Parse scalar, inline-list, and block-list aliases without PyYAML."""
+    fm_lines, _, had_fm = _split_frontmatter(text)
+    if not had_fm:
+        return []
+    aliases: List[str] = []
+    collecting = False
+    for line in fm_lines:
+        if collecting:
+            item = re.match(r"^[ \t]*-[ \t]+(.+?)\s*$", line)
+            if item:
+                aliases.append(item.group(1).strip().strip("'\""))
+                continue
+            if line.strip() and not line.startswith((" ", "\t")):
+                collecting = False
+        match = re.match(r"^aliases:\s*(.*?)\s*$", line, re.I)
+        if not match:
+            continue
+        raw = match.group(1).strip()
+        if not raw:
+            collecting = True
+        elif raw.startswith("[") and raw.endswith("]"):
+            aliases.extend(
+                item.strip().strip("'\"")
+                for item in raw[1:-1].split(",")
+                if item.strip()
+            )
+        else:
+            aliases.append(raw.strip("'\""))
+    return [alias for alias in aliases if alias]
+
+
 def _stem_index(vault: Path) -> Dict[str, str]:
-    """Map every note's lowercased stem to its vault-relative path (bounded)."""
+    """Map every note stem and frontmatter alias to its path (bounded)."""
     idx: Dict[str, str] = {}
     for i, md in enumerate(_iter_notes(vault)):
         if i >= _MAX_FILES_SCANNED:
             break
-        idx[_nfc(md.stem).lower()] = str(md.relative_to(vault))
+        rel = str(md.relative_to(vault))
+        idx[_nfc(md.stem).lower()] = rel
+        head = _read_safe(md, limit=8_000) or ""
+        for alias in _frontmatter_aliases(head):
+            idx[_norm_link(alias)] = rel
     return idx
 
 

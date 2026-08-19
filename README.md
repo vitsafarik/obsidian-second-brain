@@ -60,7 +60,7 @@
   <br />
   <em>One <code>/obsidian-save</code> - five cross-linked notes. Real footage, synthetic vault. <a href="DEMOS.md">More demos &rarr;</a></em>
   <br /><br />
-  <em>If this looks useful, <a href="https://github.com/eugeniughelbur/obsidian-second-brain/stargazers">star the repo</a>. It is how other people find it.</em>
+  <em>If this looks useful, <a href="https://github.com/eugeniughelbur/obsidian-second-brain">star the repo</a>. It is how other people find it.</em>
 </p>
 
 <p align="center">
@@ -91,7 +91,7 @@ Karpathy's pattern is brilliant. Drop sources, LLM creates wiki pages, ask quest
 | **Contradictions** | Flagged, you resolve manually | `/obsidian-reconcile` resolves them automatically |
 | **Patterns** | Surface when you ask | `/obsidian-synthesize` finds unnamed patterns and writes synthesis pages on its own |
 | **When it runs** | On demand, when you prompt | 4 scheduled agents: morning brief, nightly consolidation, weekly review, vault-health check |
-| **Note format** | Human-readable wiki pages | AI-first: `## For future Claude` preamble + frontmatter for LLM retrieval, not human review |
+| **Note format** | Human-readable wiki pages | AI-first: `## For future agent` preamble + frontmatter for LLM retrieval, not human review |
 
 If Karpathy's wiki is a knowledge base you maintain with an LLM, this is a knowledge base that maintains itself.
 
@@ -161,7 +161,7 @@ Free transcript via youtube-transcript-api. Optional metadata + top comments via
 | Web research | Open 12 tabs, copy quotes manually | `/research [topic]` returns a sourced dossier with recency markers |
 | Researching what you already know | Re-research from scratch | `/research-deep` scans vault first, fills only the gaps, flags contradictions |
 | YouTube videos | Watch passively, forget | `/youtube [url]` transcript + summary + quotes saved to vault |
-| Vault notes for future-Claude | Notes for human reading | AI-first rule: every note has "For future Claude" preamble + recency markers + citations |
+| Vault notes for future agent | Notes for human reading | AI-first rule: every note has "For future agent" preamble + recency markers + citations |
 ## More from the author
 
 *The product is above. This is where it came from and where it goes next.*
@@ -656,7 +656,7 @@ bash ~/.claude/skills/obsidian-second-brain/install.sh
 bash ~/.claude/skills/obsidian-second-brain/scripts/setup.sh "/path/to/your/vault"
 ```
 
-> Cloning it? A [star](https://github.com/eugeniughelbur/obsidian-second-brain/stargazers) costs you nothing and is how the next person finds this.
+> Cloning it? A [star](https://github.com/eugeniughelbur/obsidian-second-brain) costs you nothing and is how the next person finds this.
 
 **No vault yet?** Create a ready-to-use one first (folders, templates, boards, dashboards - passes its own health check out of the box):
 
@@ -840,7 +840,7 @@ Yes - that is the headline of v0.10 ("The Architect"). The `/obsidian-architect`
 `/obsidian-architect` writes generated content inside sentinel markers (`<!-- @generated -->` blocks). On a re-run it replaces only what is inside those blocks and leaves your `<!-- @user -->` blocks (and anything outside the markers) untouched. So you can hand-annotate the architecture notes and re-run the scan as the code evolves without losing your additions.
 
 ### What is the AI-first vault rule?
-The principle that vault notes are written for future-Claude to retrieve and reason over, not for human reading. Notes have machine-readable structure, recency markers per claim, mandatory `[[wikilinks]]`, source URLs preserved verbatim, and confidence levels. See [`references/ai-first-rules.md`](references/ai-first-rules.md) for the full specification with frontmatter schemas per note type.
+The principle that vault notes are written for future agent to retrieve and reason over, not for human reading. Notes have machine-readable structure, recency markers per claim, mandatory `[[wikilinks]]`, source URLs preserved verbatim, and confidence levels. See [`references/ai-first-rules.md`](references/ai-first-rules.md) for the full specification with frontmatter schemas per note type.
 
 ### Is this safe to run on my existing vault?
 Yes. The skill never deletes or modifies notes destructively without explicit confirmation. Existing notes stay as-is. New notes follow the AI-first rule. `/obsidian-health` flags pre-AI-first notes so you can update them on your own schedule.

@@ -18,10 +18,37 @@ import requests
 from . import usage
 from .config import GEMINI_API_KEY, get_optional
 
-GEMINI_SUMMARY_MODEL = get_optional("GEMINI_SUMMARY_MODEL", "gemini-2.5-flash")
+GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"
+GEMINI_SUMMARY_MODEL = get_optional("GEMINI_SUMMARY_MODEL", GEMINI_DEFAULT_MODEL)
+# Model access is per-key-cohort (issue #211, both directions measured
+# 2026-08-16): keys from before the 2.5 retirement generate with
+# gemini-2.5-flash and 404 on the -latest aliases; keys created after it get
+# "no longer available to new users" 404s on gemini-2.5-flash. The GET
+# /models listing returns 200 for names a key cannot generate with, so only a
+# generation call can validate a model. No single pinned name works for
+# everyone: the default walks this ladder and sticks with the first model
+# that generates. An explicit GEMINI_SUMMARY_MODEL or model= is never
+# laddered - a configured name that 404s should fail loud, with the fix named.
+# Lite alias before the full-Flash alias: on the free tier the Lite models
+# carry ~25x the daily quota (15 RPM / 500 RPD vs 5 / 20, measured in #211),
+# and the workloads here are summarization, where Lite is plenty.
+MODEL_LADDER = (
+    GEMINI_DEFAULT_MODEL,
+    "gemini-flash-lite-latest",
+    "gemini-flash-latest",
+    "gemini-3.1-flash-lite",
+)
+_ENV_HINT = ("set GEMINI_SUMMARY_MODEL in ~/.config/obsidian-second-brain/.env "
+             "to a model your key can generate with")
+_resolved_default: str | None = None
+
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 MAX_RETRIES = 3
 BACKOFF_SECONDS = (1, 3, 8)
+
+
+class _ModelUnavailable(RuntimeError):
+    """The model name 404s for this API key - a cohort miss, not an outage."""
 
 
 def call(
@@ -33,7 +60,43 @@ def call(
 ) -> dict[str, Any]:
     """Call Gemini generateContent. Returns {text, input_tokens, output_tokens,
     cost_usd, raw} - the grok.call shape, so callers can swap providers."""
-    model = model or GEMINI_SUMMARY_MODEL
+    global _resolved_default
+    explicit = model is not None or GEMINI_SUMMARY_MODEL != GEMINI_DEFAULT_MODEL
+    if explicit:
+        candidates = [model or GEMINI_SUMMARY_MODEL]
+    elif _resolved_default:
+        candidates = [_resolved_default]
+    else:
+        candidates = list(MODEL_LADDER)
+
+    last_404: Exception | None = None
+    for m in candidates:
+        try:
+            result = _generate(m, prompt, command=command, max_output_tokens=max_output_tokens)
+        except _ModelUnavailable as e:
+            last_404 = e
+            if explicit:
+                raise RuntimeError(
+                    f"Gemini model '{m}' is not available to this API key "
+                    f"(HTTP 404); {_ENV_HINT}. {e}") from e
+            print(f"[Gemini model {m} not available to this key (404); trying the next fallback...]")
+            continue
+        if not explicit:
+            _resolved_default = m
+        return result
+
+    raise RuntimeError(
+        f"No Gemini model in the fallback ladder generates with this key "
+        f"(tried: {', '.join(candidates)}); {_ENV_HINT}. Last error: {last_404}")
+
+
+def _generate(
+    model: str,
+    prompt: str,
+    *,
+    command: str,
+    max_output_tokens: int,
+) -> dict[str, Any]:
     headers = {
         "x-goog-api-key": GEMINI_API_KEY(),
         "Content-Type": "application/json",
@@ -69,6 +132,8 @@ def call(
                     "cost_usd": cost,
                     "raw": data,
                 }
+            if r.status_code == 404:
+                raise _ModelUnavailable(f"Gemini API error 404: {r.text[:300]}")
             if r.status_code in (429, 500, 502, 503, 504):
                 wait = BACKOFF_SECONDS[min(attempt, len(BACKOFF_SECONDS) - 1)]
                 print(f"[Gemini {r.status_code}, retrying in {wait}s...]")

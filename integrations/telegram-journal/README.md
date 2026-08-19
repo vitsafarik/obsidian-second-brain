@@ -5,7 +5,7 @@ Capture into your vault from your phone, hands-free. Send a **voice note**, **te
 it into a clean, AI-first entry in your Obsidian vault - then replies to confirm.
 
 It pairs with [obsidian-second-brain](../../README.md): the vault it writes into follows
-the AI-first note rules, so future-Claude can read what you captured.
+the AI-first note rules, so future agent can read what you captured.
 
 ## What it does
 

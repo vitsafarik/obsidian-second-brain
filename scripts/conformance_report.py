@@ -80,13 +80,27 @@ def check_skill_root(tree: Path, platform: str) -> bool:
     return leaked if platform in SKILL_ROOT_EXEMPT else not leaked
 
 
+def _tree_relative(cited: str) -> str:
+    """Map a citation onto a path inside the built tree.
+
+    A build whose agent runs somewhere other than the install root has to name
+    that root absolutely (hermes emits `$HOME/.hermes/skills/...` - see #191), and
+    no absolute install path can be resolved against a tree sitting in dist/. Keep
+    the tail from `references/` onward so a wrong *filename* still fails; only the
+    unverifiable prefix is dropped.
+    """
+    if cited.startswith(("/", "~", "$")):
+        return "references/" + cited.split("references/", 1)[1]
+    return cited.removeprefix("./")
+
+
 def check_reference_paths(tree: Path, platform: str) -> bool:
     for md in tree.rglob("*.md"):
         text = md.read_text(encoding="utf-8", errors="ignore")
         for cited in set(CITED_REFERENCE.findall(text)):
             if platform in SKILL_ROOT_EXEMPT and cited.startswith("SKILL_ROOT/"):
                 continue
-            rel = cited.removeprefix("./")
+            rel = _tree_relative(cited)
             candidates = [
                 tree / rel,
                 md.parent / rel,

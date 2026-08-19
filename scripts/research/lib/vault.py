@@ -2,7 +2,7 @@
 
 Each note follows the AI-first vault rule:
 1. Self-contained context
-2. "For future Claude" preamble
+2. "For future agent" preamble
 3. Rich frontmatter
 4. Recency markers per claim
 5. Sources preserved verbatim

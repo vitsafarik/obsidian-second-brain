@@ -28,7 +28,7 @@ tags:
 ai-first: true
 ---
 
-## For future Claude
+## For future agent
 A compliant note, saved to prove the checker does not fire on good input.
 
 Body text with a dated source (as of 2026-07, example.com/thing).
@@ -40,8 +40,15 @@ test("a compliant note produces nothing", () => {
   assert.deepEqual(lintNote({ path: "n.md", text: GOOD }), []);
 });
 
+test("legacy model-named preambles remain valid", () => {
+  for (const label of ["Claude", "Codex", "AI"]) {
+    const text = GOOD.replace("For future agent", `For future ${label}`);
+    assert.ok(!rules(text).includes("preamble"), label);
+  }
+});
+
 test("no frontmatter is one finding, not four", () => {
-  const found = lintNote({ path: "n.md", text: "## For future Claude\nhi\n" });
+  const found = lintNote({ path: "n.md", text: "## For future agent\nhi\n" });
   assert.deepEqual(found.map((f) => f.rule), ["frontmatter"]);
 });
 
@@ -59,7 +66,7 @@ test("a missing ai-first flag is a warning, not an error", () => {
 });
 
 test("a missing preamble is caught", () => {
-  const text = GOOD.replace("## For future Claude\n", "## Summary\n");
+  const text = GOOD.replace("## For future agent\n", "## Summary\n");
   assert.ok(rules(text).includes("preamble"));
 });
 
@@ -128,7 +135,7 @@ test("frontmatter must be at the very top to count", () => {
 });
 
 test("the preamble heading must be a heading, not a mention", () => {
-  const text = GOOD.replace("## For future Claude", "I wrote a For future Claude section");
+  const text = GOOD.replace("## For future agent", "I wrote a For future agent section");
   assert.ok(rules(text).includes("preamble"));
 });
 
@@ -179,7 +186,7 @@ ai-first: true
 github: "https://github.com/someone"
 ---
 
-## For future Claude
+## For future agent
 An entity note with no external claims in its body at all.
 `;
   assert.ok(
@@ -198,7 +205,7 @@ ai-first: true
 github: "https://github.com/someone"
 ---
 
-## For future Claude
+## For future agent
 Body text.
 
 They raised a Series A, https://example.com/blog/series-a

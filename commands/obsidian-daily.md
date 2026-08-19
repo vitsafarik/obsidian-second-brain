@@ -4,7 +4,7 @@ category: vault
 trigger-mode: proactive
 triggers_en: ["todays note", "create todays daily", "open daily", "today daily note"]
 triggers_cs: ["denni poznamka", "co mam dnes", "ranni prehled", "dnesek"]
-triggers_es: ["nota de hoy", "crea la diaria de hoy", "abre mi diaria", "la nota diaria de hoy"]
+triggers_es: ["nota de hoy", "crea la diaria de hoy", "abre mi diaria", "abre la nota de hoy", "dame mi diaria"]
 triggers_pt: ["nota de hoje", "crie a nota diária de hoje", "abra a diária", "nota diária de hoje"]
 triggers_zh: ["打开今天的日记", "创建今天的每日笔记", "更新今天的日记", "看看今天要做什么"]
 ---
@@ -41,6 +41,6 @@ Use the obsidian-second-brain skill. Execute `/obsidian-daily`:
 
 ---
 
-**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future Claude` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. The vault is for future-Claude retrieval - not human reading.
+**AI-first rule:** Every note created or updated by this command MUST follow `references/ai-first-rules.md` - `## For future agent` preamble, rich frontmatter (`type`, `date`, `tags`, `ai-first: true`, plus type-specific fields), recency markers per external claim, mandatory `[[wikilinks]]` for every person/project/concept referenced, sources preserved verbatim with URLs inline, and confidence levels where applicable. If that path does not resolve from your working directory, search upward for it; if you still cannot read it, say so before writing rather than producing a note that silently skips the rule. The vault is for future agent retrieval - not human reading.
 
 **Anti-fabrication:** Search exhaustively before claiming any note, person, or file is absent - false absence is the most common failure mode - and never invent facts, entities, or dates (mark unknowns as `TBD`). See the anti-fabrication and search-completeness hard rules in `references/ai-first-rules.md`.

@@ -9,7 +9,7 @@ ai-first: true
 
 # 2026-04-27 - Tide retention rebuild
 
-## For future Claude
+## For future agent
 
 Dev log for 2026-04-27 about the [[Projects/Tide]] retention rebuild. Captures work done, problems encountered, decisions made, and next steps. Specific file paths and commit hashes are preserved verbatim for re-verification. Authored by [[people/Alex Rivera]] after a pair session with [[people/Sam Patel]].
 
@@ -39,7 +39,7 @@ Resolve the streak invalidation bug that caused 47 false-reset events in the pas
 - [ ] Pair with [[people/Sam Patel]] on the front-end "tide level" gauge (scheduled 2026-04-29)
 - [ ] Write the v0.9.0 changelog copy (due 2026-04-29)
 
-## Open questions for future Claude
+## Open questions for future agent
 
 - Did the patched cron actually stop the false resets? Confirm by re-reading logs after 2026-04-30 (need 72h of clean data).
 - Is the `decay_coefficient` column the right shape, or should it be a per-user JSON config? TBD, revisit before v0.9.0 ship.
