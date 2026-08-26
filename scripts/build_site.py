@@ -153,8 +153,8 @@ def render_index(cmds: list[dict]) -> str:
     parts = [
         "<h1>obsidian-second-brain</h1>",
         f'<p class="lede">Your AI agent starts every session knowing nothing about '
-        f"you. These {len(cmds)} commands give it long-term memory across "
-        "sessions, kept as plain markdown in your own Obsidian vault. Every one works "
+        f"you. These {len(cmds)} commands give Claude, Grok Bot, and other agents long-term memory across "
+        "sessions, kept as plain markdown in your Obsidian vault. Every one works "
         "by plain language, in English, Spanish, Portuguese or Simplified Chinese.</p>",
         '<input type="search" id="q" placeholder="Filter commands..." '
         'aria-label="Filter commands">',
@@ -219,12 +219,12 @@ def build(out: Path, cmds: list[dict]) -> dict[str, str]:
         # of the stars outrank this one on those queries purely by saying the
         # problem out loud. Same claims either way; only the ordering changed.
         "index.html": page(
-            "Persistent memory for Claude Code, in your Obsidian vault "
-            "- obsidian-second-brain",
-            "Give Claude Code and six other CLI agents long-term memory across "
-            "sessions, stored as plain markdown in your own Obsidian vault. Stop "
-            "re-explaining your projects, decisions and people every time. 46 "
-            "commands, with plain-language triggers in English, Spanish, Portuguese "
+            "AI second brain for Obsidian - persistent memory for "
+            "Claude Code and Grok Bot",
+            "Persistent memory for Claude Code, Grok Bot, and 6 other agents - stored "
+            "as plain markdown in your Obsidian vault. Stop "
+            "re-explaining your projects, decisions and people every session. 46 "
+            "commands with triggers in English, Spanish, Portuguese "
             "and Simplified Chinese.",
             render_index(cmds),
         ),

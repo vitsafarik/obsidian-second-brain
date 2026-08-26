@@ -14,6 +14,21 @@ Each upstream release is absorbed by re-applying the Czech deltas onto a fresh
 `upstream/main` (never a rebase of old commits). The previous branch state is
 kept as a fallback tag before each re-apply.
 
+- **2026-08-26: merged `upstream/main`** (3 unreleased commits since the 2026-08-19
+  merge; still no release after v0.14.0). Plain `git merge` again, so the other
+  machine pulls `--ff-only`. Fallback tag: `cs-adaptace-pre-upstream-20260826`.
+  One conflict, `integrations/obsidian-mcp-server/README.md` (our `vstupy/` wording
+  vs upstream's new flag - kept both). What arrived: the MCP server launches with
+  `uv run --no-project` everywhere (#226 - without it `uv` adopted whatever
+  pyproject.toml sat in the user's cwd and wrote a `.venv`/`uv.lock` there on every
+  session start), a `grok-bot` adapter (8th platform build), Grok Bot SEO wording.
+  `test_no_documented_command_adopts_the_users_project` now also sweeps this file,
+  so section 4 below spells the launch with the flag. Verified after the merge:
+  `uv run pytest` 627/627 (with the machine env stripped - see the fork's memory
+  note: `OBSIDIAN_EMBED_MODEL`, `OBSIDIAN_BG_AGENT_ENABLED` and a local
+  `GEMINI_SUMMARY_MODEL` each break one upstream test when exported), `uvx ruff
+  check` clean, `bash scripts/build.sh` all platforms, vault_health on the real
+  vault 779 notes.
 - **2026-08-19: merged `upstream/main`** (26 unreleased commits since the 0.14
   re-apply; no new upstream release - v0.14.0 is still the newest tag). This one
   was absorbed as a real `git merge`, NOT a re-apply: the delta was small enough
@@ -172,14 +187,15 @@ kept as a fallback tag before each re-apply.
   the collapse-to-one behaviour it tests is untouched).
 - **The `mcp<2` pin is NO LONGER a delta (2026-08-19).** PR #185 merged upstream
   and arrived with this merge: the manifest, `scripts/setup.sh`, `SKILL.md`,
-  `README.md` and the integration docs all carry `--with 'mcp<2'`, and
+  `README.md` and the integration docs all carry `--no-project --with 'mcp<2'`
+  (the `--no-project` half arrived with upstream #226 on 2026-08-26), and
   `tests/test_plugin_manifest.py` sweeps every tracked file to keep it that way.
   Reinstalling via `setup.sh` no longer resurrects the unpinned launch.
 - 4 smoke-test localizations in `tests/test_smoke.py` (vstupy/ paths + Czech
   preamble assertions); upstream's English-preamble FIXTURES elsewhere stay
   untouched (validate_note dual-accepts, vault_health is not localized).
 - **Wired into Claude Code** (user scope, `~/.claude.json` mcpServers, stdio
-  `uv run --with 'mcp<2' python .../obsidian-mcp-server/server.py`) since ~2026-07.
+  `uv run --no-project --with 'mcp<2' python .../obsidian-mcp-server/server.py`) since ~2026-07.
   Not wired into any other client. The `mcp<2` pin was a temporary local delta
   (2026-07-31, after `mcp` 2.0.0 dropped `mcp.server.fastmcp` and crashed the
   server on both machines); it was sent upstream as PR #185 (issue #183) and

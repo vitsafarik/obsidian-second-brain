@@ -1,18 +1,19 @@
 <p align="center">
   <a href="https://github.com/eugeniughelbur/obsidian-second-brain">
-    <img src="media/banner.png" alt="obsidian-second-brain: one brain, seven platforms, 46 commands. A cross-platform skill for Obsidian that runs on Claude Code, Codex, Gemini, OpenCode, Antigravity, Hermes, and Pi." width="100%" />
+    <img src="media/banner.png" alt="obsidian-second-brain: one brain, eight platforms, 46 commands. A cross-platform skill for Obsidian that runs on Claude Code, Codex, Gemini, OpenCode, Antigravity, Hermes, Pi, and Grok Bot." width="100%" />
   </a>
 </p>
 
 <p align="center">
   <a href="#install"><img src="https://img.shields.io/badge/Claude_Code-D97757?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude Code" /></a>
+  <a href="#grok-bot"><img src="https://img.shields.io/badge/Grok_Bot-000000?style=for-the-badge&logo=x&logoColor=white" alt="Grok Bot" /></a>
   <a href="#codex-cli--gemini-cli--opencode"><img src="https://img.shields.io/badge/Codex_CLI-412991?style=for-the-badge&logo=openai&logoColor=white" alt="Codex CLI" /></a>
   <a href="#codex-cli--gemini-cli--opencode"><img src="https://img.shields.io/badge/Gemini_CLI-4285F4?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Gemini CLI" /></a>
   <a href="#codex-cli--gemini-cli--opencode"><img src="https://img.shields.io/badge/OpenCode-181818?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="OpenCode" /></a>
 </p>
 
 <p align="center">
-  <strong>One codebase. Seven CLIs. Same brain.</strong>
+  <strong>Your vault is the memory. Claude, Grok Bot, Codex - same brain.</strong>
   <br />
   <em>Your vault outlives whichever CLI you switch to.</em>
 </p>
@@ -25,7 +26,7 @@
   <a href="https://github.com/sponsors/eugeniughelbur"><img src="https://img.shields.io/badge/Sponsor-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white" alt="Sponsor" /></a>
 </p>
 
-<h1 align="center">obsidian-second-brain: an AI second brain for Obsidian that Claude can actually search</h1>
+<h1 align="center">obsidian-second-brain: AI second brain for Obsidian - persistent memory for Claude Code and Grok Bot</h1>
 
 <p align="center">
   <strong>An evolution of <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">Karpathy's LLM Wiki pattern</a>: a vault that rewrites itself.</strong>
@@ -73,7 +74,7 @@
 
 ## The Problem
 
-You use Claude every day. Every session starts from scratch. You re-explain everything. The conversation ends. Everything disappears. Claude Code has no persistent memory across sessions, and neither does Codex, Gemini, or any of the others.
+You use Claude every day. Every session starts from scratch. You re-explain everything. The conversation ends. Everything disappears. Claude Code has no persistent memory across sessions - and neither does Grok Bot, Codex, Gemini, or any of the others.
 
 You take notes in Obsidian. Hundreds of files. They just sit there. You make the same decision twice because you forgot you made it six months ago. Ideas rot in daily notes. Nobody connects the dots.
 
@@ -601,7 +602,7 @@ vault/
 
 ## Install
 
-> **One codebase, seven builds.** Pick yours below. The vault behavior is identical across all of them; only the install path and the dispatcher file (`CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.agents/skills/` / `.pi/`) differ.
+> **One codebase, eight builds.** Pick yours below. The vault behavior is identical across all of them; only the install path and the dispatcher file (`CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.agents/skills/` / `.pi/` / workflow SKILL.md) differ.
 
 Rather than ask you to take that on faith, here is what each build currently passes:
 
@@ -612,6 +613,7 @@ Rather than ask you to take that on faith, here is what each build currently pas
 | Claude Code | pass | pass | pass | pass |
 | Codex CLI | pass | pass | pass | pass |
 | Gemini CLI | pass | pass | pass | pass |
+| Grok Bot | pass | pass | pass | pass |
 | Hermes | pass | pass | pass | pass |
 | OpenCode | pass | pass | pass | pass |
 | Pi | pass | pass | pass | pass |
@@ -713,6 +715,17 @@ pi install ./dist/pi          # or: cp -R dist/pi/.pi/ /path/to/your/vault/
 
 The **Pi build emits a native [Pi](https://pi.dev) package**: prompt templates under `.pi/prompts/` (invoke as `/obsidian-save`, `/obsidian-daily`, etc.) plus a discovery skill under `.pi/skills/obsidian-second-brain/` (load with `/skill:obsidian-second-brain`). Pi reads the same `~/.config/obsidian-second-brain/.env` keys as the other platforms. It has no background-agent equivalent - run `/obsidian-nightly` manually or via cron. (Contributed by @Gepetdo.)
 
+### Grok Bot / Sand
+
+```bash
+git clone https://github.com/eugeniughelbur/obsidian-second-brain
+cd obsidian-second-brain
+bash scripts/build.sh --platform grok-bot
+# Review dist/grok-bot/INSTALL.md for platform-specific instructions
+```
+
+The **Grok Bot build emits workflow SKILL.md files** that Grok Bot and Sand agents invoke with `/` or `@`. Each skill is a self-contained playbook (name, description, operating instructions). The `user-obsidian-second-brain` MCP server (already connected in Grok Bot) provides the vault I/O layer via `obsidian_*` tools (`obsidian_search`, `obsidian_read_note`, `obsidian_save_note`, `obsidian_update_note`, `obsidian_validate_note`, etc.). Skills tell the agent which MCP tool to call and how to structure the data. Set `$OBSIDIAN_VAULT_PATH` to your vault root. No hooks, no scheduled agents - Grok Bot has no hook runtime.
+
 ### Run on Hermes / open models
 
 The skill is model-agnostic. The OpenCode build (and the Codex / Gemini builds) are plain instruction files, so they run on whatever model the host CLI is pointed at - including open models like [Nous Research Hermes](https://github.com/NousResearch/hermes-agent). No separate build, no code changes. You set the model on OpenCode's side.
@@ -758,7 +771,7 @@ What to expect (open models follow instructions less reliably than Claude, so th
 
 The 7 research commands use API keys (2 of them fall back to free sources without any).
 
-**Installed the plugin?** You have no repo checkout, so `install.sh`, `.env.example`, and `uv sync` are not on your disk. Create the env file by hand instead - the research scripts read this path regardless of how you installed, and the plugin's MCP server already runs under `uv run --with 'mcp<2'`, so there is nothing to `uv sync`:
+**Installed the plugin?** You have no repo checkout, so `install.sh`, `.env.example`, and `uv sync` are not on your disk. Create the env file by hand instead - the research scripts read this path regardless of how you installed, and the plugin's MCP server already runs under `uv run --no-project --with 'mcp<2'`, so there is nothing to `uv sync`:
 
 ```bash
 mkdir -p ~/.config/obsidian-second-brain
@@ -819,7 +832,7 @@ An Obsidian plugin runs inside Obsidian and is written in TypeScript against Obs
 Run the one-line installer from the [Install](#install) section above. It clones the repo to `~/.claude/skills/obsidian-second-brain` and symlinks the slash commands into `~/.claude/commands/` so Claude Code picks them up automatically. Restart Claude Code after install. The skill loads on every session that touches an Obsidian vault.
 
 ### Does this work with Codex CLI, Gemini CLI, or OpenCode?
-Yes. The repo ships a build script that compiles the platform-neutral source into seven platform-specific outputs: Claude Code (slash commands + `CLAUDE.md`), Codex CLI (native Agent Skills), Gemini CLI (`GEMINI.md` + `.gemini/commands/`), OpenCode (`AGENTS.md` + `.opencode/commands/`), Hermes (native skills), Pi (`package.json` + `.pi/`), and a unified Agent Skills build (one `.agents/skills/` tree for Antigravity / Codex / OpenCode / GitHub Copilot CLI and any other Agent Skills harness). Run `bash scripts/build.sh --platform codex-cli` (or another platform name), then copy the resulting `dist/<platform>/` tree into your vault. The non-Claude builds either emit native skills or auto-generate a routing table that maps natural-language triggers to command files, so the same 44 cross-platform commands work no matter which CLI you use (the calendar command is Claude Code only, since it depends on the Google Calendar MCP). The vault rules (AI-first notes, frontmatter, wikilinks, recency markers) are identical across every platform.
+Yes. The repo ships a build script that compiles the platform-neutral source into eight platform-specific outputs: Claude Code (slash commands + `CLAUDE.md`), Codex CLI (native Agent Skills), Gemini CLI (`GEMINI.md` + `.gemini/commands/`), OpenCode (`AGENTS.md` + `.opencode/commands/`), Hermes (native skills), Pi (`package.json` + `.pi/`), Grok Bot (workflow SKILL.md files + MCP), and a unified Agent Skills build (one `.agents/skills/` tree for Antigravity / Codex / OpenCode / GitHub Copilot CLI and any other Agent Skills harness). Run `bash scripts/build.sh --platform codex-cli` (or another platform name), then copy the resulting `dist/<platform>/` tree into your vault. The non-Claude builds either emit native skills or auto-generate a routing table that maps natural-language triggers to command files, so the same 44 cross-platform commands work no matter which CLI you use (the calendar command is Claude Code only, since it depends on the Google Calendar MCP). The vault rules (AI-first notes, frontmatter, wikilinks, recency markers) are identical across every platform.
 
 ### Does this run on Hermes or other open models?
 Yes. The skill is model-agnostic - the OpenCode, Codex, and Gemini builds are plain instruction files, so they run on whatever model the host CLI uses, including open models like Nous Research Hermes. The most common path is OpenCode pointed at Hermes via OpenRouter (or a local Hermes through Ollama / LM Studio for full privacy). See "Run on Hermes / open models" in the Install section for the exact config. Honest expectation: the core save / daily / capture / find / task commands and free-mode `/research` hold up well; the sub-agent-heavy and deep-synthesis commands (`/obsidian-architect`, `/obsidian-reconcile`, `/research-deep`) want a stronger instruction-follower, so prefer `hermes-4-405b` or Claude for those.
@@ -902,7 +915,7 @@ PRs welcome more generally:
 - Alternative vault structures
 - VS Code / Cursor setup guides
 
-**Own a platform.** Seven builds, one maintainer who can test two. [adapters/OWNERS.md](adapters/OWNERS.md) has the open list; using the platform is the whole qualification, and your handle ships inside that build.
+**Own a platform.** Eight builds, one maintainer who can test two. [adapters/OWNERS.md](adapters/OWNERS.md) has the open list; using the platform is the whole qualification, and your handle ships inside that build.
 
 Building a domain-specific fork (academic, legal, finance, medical)? See [ECOSYSTEM.md](ECOSYSTEM.md). The upstream repo ships primitives; forks own the domain knowledge. First proof case: [`scholarbrain`](https://github.com/SHzzzAyys/scholarbrain) for academic research.
 
