@@ -87,3 +87,29 @@ def test_build_names_fully_dropped_notes(tmp_path, monkeypatch, capsys):
     assert "doomed.md" not in index["notes"]
     err = capsys.readouterr().err
     assert "DROPPED - not findable semantically] doomed.md" in err
+
+
+def test_build_writes_index_atomically(tmp_path, monkeypatch):
+    """The index is rebuilt hourly while the recall hook and MCP read it. A write
+    that dies halfway must leave the previous index whole, never a truncated JSON
+    (direct write_text on the ~200 MB file used to leave exactly that)."""
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "a.md").write_text("---\ntype: note\n---\n\nfirst\n", encoding="utf-8")
+    monkeypatch.setattr(ss, "embed", lambda text, retries=None: [1.0, 0.0])
+    ss.build_index(vault, verbose=False)
+    index_path = vault / ss.INDEX_FILE
+    before = index_path.read_text(encoding="utf-8")
+
+    (vault / "b.md").write_text("---\ntype: note\n---\n\nsecond\n", encoding="utf-8")
+
+    def boom(self, target):
+        raise OSError("disk full mid-swap")
+
+    monkeypatch.setattr(ss.Path, "replace", boom)
+    with pytest.raises(OSError):
+        ss.build_index(vault, verbose=False)
+
+    assert index_path.read_text(encoding="utf-8") == before
+    leftovers = [p.name for p in vault.iterdir() if p.name.startswith(ss.INDEX_FILE) and p != index_path]
+    assert leftovers == [], f"temp files left behind: {leftovers}"

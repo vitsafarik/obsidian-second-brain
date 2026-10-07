@@ -344,7 +344,14 @@ def build_index(vault: Path, verbose: bool = True) -> dict:
             print(f"  embedded {embedded} notes...", file=sys.stderr)
 
     out = {"model": EMBED_MODEL, "format": 2, "notes": new}
-    index_path.write_text(json.dumps(out), encoding="utf-8")
+    # Atomic swap: the index is rebuilt while the recall hook and MCP read it, and a
+    # direct write_text on the ~200 MB file exposes a truncated JSON for seconds.
+    tmp_path = index_path.with_name(f"{INDEX_FILE}.{os.getpid()}.tmp")
+    try:
+        tmp_path.write_text(json.dumps(out), encoding="utf-8")
+        tmp_path.replace(index_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
     if verbose:
         total_eligible = len(new) + failed
         pct = (100.0 * len(new) / total_eligible) if total_eligible else 100.0

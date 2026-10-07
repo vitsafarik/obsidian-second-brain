@@ -297,6 +297,12 @@ injects a "Skill root" block into EVERY session, not just vault sessions.
   group our fork used to add).
 - `uvx ruff check .` is clean on 0.14 - the 17-error upstream debt noted at 0.12
   is gone, so lint failures from here on are ours.
+- **Atomic semantic index write** (added 2026-10-07): `scripts/eval/semantic_search.py`
+  `build_index` writes `<index>.<pid>.tmp` and swaps it in with `Path.replace`
+  instead of `write_text` on the live ~200 MB file. The index is now refreshed
+  hourly by the living loop while the recall hook and MCP read it; the direct
+  write exposed a truncated JSON for seconds. Guarded by
+  `tests/test_index_robustness.py::test_build_writes_index_atomically`.
 
 ## Not adopted (deliberately)
 
