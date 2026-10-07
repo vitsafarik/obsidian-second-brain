@@ -31,7 +31,7 @@ from pathlib import Path
 MAX_NOTES = 4
 MAX_CHARS = 900          # hard budget for the injected brief (~250 tokens)
 MIN_PROMPT_CHARS = 12    # ignore "ok", "yes", slash commands, etc.
-MIN_TERM_OVERLAP = 1     # top hit must share at least one meaningful term
+MIN_TERM_OVERLAP = 1     # a returned note must share at least one meaningful term
 
 
 def _log(vault: Path, entry: dict) -> None:
@@ -79,11 +79,15 @@ def main() -> int:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "integrations" / "obsidian-mcp-server"))
     import vault_ops  # noqa: E402
 
-    # Lexical only. This hook fires on EVERY prompt, and the semantic arm costs
-    # 11-12s against a ~2,900-note vault (measured 2026-07-25) versus 1.4s lexical.
-    # A bounded recall brief that abstains on weak matches does not need semantic
-    # ranking; paying 12s per message for it is not a trade worth making.
-    results = vault_ops.search(prompt, limit=MAX_NOTES, semantic=False)
+    # Semantic fusion on by default (OBSIDIAN_RECALL_SEMANTIC=0 turns it off).
+    # History: 2026-07-25 the semantic arm cost 11-12s per prompt, so the hook went
+    # lexical-only. Re-measured 2026-10-07 on a 1,357-note vault with
+    # qwen3-embedding:4b: ~1-2s per prompt, and on 30 paraphrased questions the
+    # lexical-only hook injected the right note 4/30 times (13%) while the
+    # MCP's fused search ranked it top-10 26/30 (87%). Passing semantic=None
+    # keeps vault_ops' own rule: a single-term query stays a lexical lookup.
+    use_semantic = os.environ.get("OBSIDIAN_RECALL_SEMANTIC", "1").strip() != "0"
+    results = vault_ops.search(prompt, limit=MAX_NOTES, semantic=None if use_semantic else False)
 
     # Exclude raw/ from automatic injection. It holds verbatim third-party
     # sources (articles, transcripts, OCR), and this hook pastes its results
@@ -97,13 +101,19 @@ def main() -> int:
         _log(vault, {"prompt_chars": len(prompt), "abstained": True, "reason": "no results"})
         return 0
 
-    # Abstention: the top hit must share at least one meaningful term with the
-    # prompt (title or snippet). Weak matches inject nothing - silence beats
-    # noise, and the user can always search explicitly.
+    # Abstention: a returned note must share at least one meaningful term with
+    # the prompt (title or snippet). No overlap anywhere injects nothing - the
+    # user can always search explicitly.
+    # Gate on ANY of the returned notes (default) or only the top one
+    # (OBSIDIAN_RECALL_GATE=top, stricter). Measured 2026-10-07, 30 paraphrased
+    # questions + 10 casual prompts: top-gate injected the right note 18/30 with
+    # noise on 4/10 casual prompts; any-gate 23/30 with noise 7/10 (the same noise
+    # rate the old lexical hook had at 4/30 hits). A semantic top hit often shares
+    # no literal word with the prompt, so a top-only gate drops good matches.
     ptoks = _terms(vault_ops, prompt)
-    top = results[0]
-    ttoks = _terms(vault_ops, str(top.get("title", "")) + " " + str(top.get("snippet", "")))
-    if len(ptoks & ttoks) < MIN_TERM_OVERLAP:
+    gate = results[:1] if os.environ.get("OBSIDIAN_RECALL_GATE", "any").strip() == "top" else results
+    best = max(len(ptoks & _terms(vault_ops, str(r.get("title", "")) + " " + str(r.get("snippet", "")))) for r in gate)
+    if best < MIN_TERM_OVERLAP:
         _log(vault, {"prompt_chars": len(prompt), "abstained": True, "reason": "low confidence"})
         return 0
 
